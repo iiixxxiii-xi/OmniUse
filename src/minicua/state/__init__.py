@@ -1,5 +1,6 @@
 """State layer: event log, checkpoint, and trajectory recording."""
 
+from minicua.state.checkpoint import Checkpoint, CheckpointError
 from minicua.state.events import (
     ActionEvent,
     Event,
@@ -15,6 +16,8 @@ from minicua.state.events import (
 
 __all__ = [
     "ActionEvent",
+    "Checkpoint",
+    "CheckpointError",
     "Event",
     "EventLog",
     "EventType",
