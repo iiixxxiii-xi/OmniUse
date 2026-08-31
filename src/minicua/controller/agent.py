@@ -24,13 +24,15 @@ run is bounded by :class:`Budget` (steps / failures / tokens / cost / timeout).
 
 import logging
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
 
 from minicua.action.executor import execute
-from minicua.action.models import Action, ActionResult
+from minicua.action.models import Action, ActionError, ActionResult
 from minicua.action.registry import ActionRegistry, get_default_registry
+from minicua.browser.crash_watchdog import CrashWatchdog
 from minicua.browser.session import BrowserSession
 from minicua.controller.budget import Budget
 from minicua.controller.llm import (
@@ -41,11 +43,20 @@ from minicua.controller.llm import (
     ModelOutput,
 )
 from minicua.controller.retry import MODEL_RETRY_POLICY, retry_model_call
-from minicua.core.errors import BrowserError
+from minicua.core.errors import BrowserError, CrashError
 from minicua.core.retry import RetryPolicy
+from minicua.perception.dom import BrowserState
 from minicua.perception.extract import extract_state
+from minicua.recovery.crash import STORAGE_STATE_FILENAME, RecoveryCheckpoint, recover, save_checkpoint
+from minicua.recovery.loop import LoopDetector
+from minicua.recovery.page_change import PageFingerprint, page_changed
+from minicua.recovery.stale import recover_stale
 
 logger = logging.getLogger("minicua.controller.agent")
+
+# Action failures that indicate the page moved under the model and are worth a
+# re-perceive + relocalize before escalating.
+_STALE_ERROR_CODES = frozenset({ActionError.STALE_ELEMENT, ActionError.ELEMENT_NOT_FOUND})
 
 # --------------------------------------------------------------------------- #
 # Result models
@@ -73,6 +84,8 @@ class StepRecord(BaseModel):
     thought: str | None = None
     actions: list[Action] = Field(default_factory=list)
     results: list[ActionResult] = Field(default_factory=list)
+    page_changed: bool = False
+    recoveries: int = 0
 
 
 class StepResult(BaseModel):
@@ -84,6 +97,8 @@ class StepResult(BaseModel):
     thought: str | None = None
     actions: list[Action] = Field(default_factory=list)
     results: list[ActionResult] = Field(default_factory=list)
+    page_changed: bool = False
+    recoveries: int = 0
 
 
 class AgentResult(BaseModel):
@@ -99,6 +114,8 @@ class AgentResult(BaseModel):
     stop_reason: StopReason
     error: str | None = None
     history: list[StepRecord] = Field(default_factory=list)
+    recoveries: int = 0
+    page_changes: int = 0
 
 
 # --------------------------------------------------------------------------- #
@@ -159,6 +176,12 @@ class Agent:
         max_actions_per_step: int = 10,
         registry: ActionRegistry | None = None,
         retry_policy: RetryPolicy | None = None,
+        enable_recovery: bool = True,
+        checkpoint_dir: str | Path | None = None,
+        loop_detection: bool = True,
+        loop_window: int = 10,
+        loop_threshold: int = 5,
+        crash_watchdog: CrashWatchdog | None = None,
     ) -> None:
         self.session = session
         self.model = model
@@ -168,6 +191,13 @@ class Agent:
         self.max_actions_per_step = max_actions_per_step
         self.registry = registry or get_default_registry()
         self.retry_policy = retry_policy or MODEL_RETRY_POLICY
+
+        self.enable_recovery = enable_recovery
+        self._checkpoint_dir = Path(checkpoint_dir) if checkpoint_dir is not None else None
+        self.loop_detector = LoopDetector(window=loop_window, threshold=loop_threshold) if loop_detection else None
+        self._watchdog = crash_watchdog or CrashWatchdog()
+        self.recoveries = 0
+        self.page_changes = 0
 
         self._budget_config = dict(
             max_steps=max_steps,
@@ -195,15 +225,57 @@ class Agent:
     def _system_prompt(self) -> str:
         return _SYSTEM_PROMPT_TEMPLATE.format(task=self.task or "(no task)")
 
+    # -- recovery ----------------------------------------------------------
+
+    def _page_fingerprint(self, state: BrowserState) -> PageFingerprint:
+        return PageFingerprint.from_browser_state(state.url, state.dom_text, len(state.selector_map))
+
+    async def _maybe_recover_from_crash(self) -> None:
+        """Rebuild the session if the watchdog flagged a crash, else no-op."""
+        if not self._watchdog.crashed:
+            return
+        if not self.enable_recovery or self._checkpoint_dir is None:
+            self._watchdog.crashed = False
+            raise CrashError(
+                f"browser crashed and recovery is unavailable "
+                f"(enable_recovery={self.enable_recovery}, checkpoint_dir={self._checkpoint_dir})"
+            )
+        logger.warning("browser crash detected; recovering from %s", self._checkpoint_dir)
+        result = await recover(self.session, self._checkpoint_dir)
+        self._watchdog.crashed = False
+        self._watchdog.attach(self.session.context)
+        if result.checkpoint is not None and result.checkpoint.task:
+            self.task = result.checkpoint.task
+        self.recoveries += 1
+        logger.info("session recovered; resuming task %r", self.task)
+
+    async def _save_checkpoint(self) -> None:
+        """Persist storage_state + task checkpoint for a later crash recovery."""
+        if self._checkpoint_dir is None:
+            return
+        try:
+            self._checkpoint_dir.mkdir(parents=True, exist_ok=True)
+            await self.session.save_storage_state(self._checkpoint_dir / STORAGE_STATE_FILENAME)
+        except Exception:  # noqa: BLE001 - checkpointing must never crash the loop
+            logger.warning("failed to save storage_state checkpoint", exc_info=True)
+        try:
+            save_checkpoint(self._checkpoint_dir, RecoveryCheckpoint(task=self.task, step=self.budget.steps))
+        except Exception:  # noqa: BLE001
+            logger.warning("failed to save recovery checkpoint", exc_info=True)
+
     async def run(self, task: str | None = None) -> AgentResult:
         """Run the loop until ``done``, a budget limit, or a classified model failure."""
         if task is not None:
             self.task = task
         self._require_page()
+        self._watchdog.attach(self.session.context)
         self.budget = self._new_budget()
         self.budget.start()
         self._messages = [Message(role="system", content=self._system_prompt())]
         self._history = []
+        self.recoveries = 0
+        self.page_changes = 0
+        await self._save_checkpoint()
 
         try:
             while True:
@@ -222,6 +294,8 @@ class Agent:
                         cost_usd=self.budget.cost_usd,
                         stop_reason=StopReason.DONE,
                         history=self._history,
+                        recoveries=self.recoveries,
+                        page_changes=self.page_changes,
                     )
         except ModelInvalidResponseError as exc:
             return self._result(StopReason.INVALID_RESPONSE, error=str(exc))
@@ -241,6 +315,8 @@ class Agent:
             tokens=self.budget.tokens,
             cost_usd=self.budget.cost_usd,
             history=self._history,
+            recoveries=self.recoveries,
+            page_changes=self.page_changes,
         )
 
     # -- one step -----------------------------------------------------------
@@ -250,6 +326,10 @@ class Agent:
         page = self._require_page()
         if not self._messages:
             self._messages = [Message(role="system", content=self._system_prompt())]
+
+        # Recover from a browser crash before perceiving (fresh page + task state).
+        await self._maybe_recover_from_crash()
+        page = self._require_page()
 
         # perceive
         state = await extract_state(
@@ -265,13 +345,34 @@ class Agent:
         if output.thought:
             self._messages.append(Message(role="assistant", content=output.thought))
 
-        # act
+        # act (with stale-element recovery + page-change guard)
+        multi_action = len(actions) > 1
+        fingerprint_before = self._page_fingerprint(state) if multi_action else None
+
         results: list[ActionResult] = []
         is_done = False
         success: bool | None = None
         submission: str | None = None
+        page_changed_this_step = False
+        recovered_this_step = 0
         for action in actions:
             result = await execute(action, page, state)
+
+            # Stale-element recovery: re-perceive + relocalize, then re-execute
+            # with the fresh index rather than failing outright.
+            if (
+                self.enable_recovery
+                and not result.success
+                and result.retryable
+                and result.error_code in _STALE_ERROR_CODES
+            ):
+                recovered = await recover_stale(action, state, page)
+                if recovered is not None:
+                    logger.info("relocalized stale action %s; retrying with fresh index", action.name)
+                    recovered_this_step += 1
+                    action, state = recovered
+                    result = await execute(action, page, state)
+
             results.append(result)
             if action.name == "done":
                 is_done = True
@@ -283,14 +384,49 @@ class Agent:
             else:
                 self.budget.record_failure()
 
+            # Page-change guard: abort the remaining multi-action queue when the
+            # page moved under us (e.g. a navigate re-rendered the whole DOM).
+            if multi_action and not is_done:
+                after = await extract_state(page)
+                if page_changed(fingerprint_before, self._page_fingerprint(after)):
+                    page_changed_this_step = True
+                    self.page_changes += 1
+                    self._messages.append(
+                        Message(
+                            role="user",
+                            content="Page changed mid-step; remaining actions aborted. Re-perceive before continuing.",
+                        )
+                    )
+                    break
+
+        # Loop detection: record this step's actions + page, then inject a soft
+        # nudge for the next model call (never blocks an action).
+        if self.loop_detector is not None:
+            for action in actions:
+                params = action.params.model_dump() if action.params is not None else {}
+                self.loop_detector.record_action(action.name, params)
+            self.loop_detector.record_page_state(state.url, state.dom_text, len(state.selector_map))
+            nudge = self.loop_detector.nudge_message()
+            if nudge:
+                self._messages.append(Message(role="user", content=nudge))
+
         # observe
         if not is_done and results:
             self._messages.append(Message(role="user", content=_render_observation(results)))
 
         self.budget.record_step()
         self._history.append(
-            StepRecord(step=self.budget.steps, thought=output.thought, actions=actions, results=results)
+            StepRecord(
+                step=self.budget.steps,
+                thought=output.thought,
+                actions=actions,
+                results=results,
+                page_changed=page_changed_this_step,
+                recoveries=recovered_this_step,
+            )
         )
+        self.recoveries += recovered_this_step
+        await self._save_checkpoint()
 
         return StepResult(
             is_done=is_done,
@@ -299,6 +435,8 @@ class Agent:
             thought=output.thought,
             actions=actions,
             results=results,
+            page_changed=page_changed_this_step,
+            recoveries=recovered_this_step,
         )
 
     # -- think (retry + requery) -------------------------------------------
