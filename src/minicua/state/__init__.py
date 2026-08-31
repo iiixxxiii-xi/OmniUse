@@ -13,6 +13,7 @@ from minicua.state.events import (
     event_from_json,
     event_to_json,
 )
+from minicua.state.trajectory import TrajectoryRecorder, TrajectoryStep
 
 __all__ = [
     "ActionEvent",
@@ -25,6 +26,8 @@ __all__ = [
     "ObservationEvent",
     "RecoveryEvent",
     "StepEvent",
+    "TrajectoryRecorder",
+    "TrajectoryStep",
     "event_from_json",
     "event_to_json",
 ]
