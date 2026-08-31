@@ -304,6 +304,10 @@ class Agent:
         except Exception as exc:  # noqa: BLE001 - surface unexpected failures as a structured result
             logger.exception("unexpected error during agent run")
             return self._result(StopReason.ERROR, error=f"{type(exc).__name__}: {exc}")
+        finally:
+            # The caller (e.g. the eval runner) closes the session after the run;
+            # an intentional close must not be misread as a crash.
+            self._watchdog.detach()
 
     def _result(self, reason: StopReason, error: str | None = None) -> AgentResult:
         return AgentResult(

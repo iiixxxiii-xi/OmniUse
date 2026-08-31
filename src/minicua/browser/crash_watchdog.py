@@ -15,6 +15,8 @@ class CrashWatchdog:
     def __init__(self) -> None:
         self.on_crash: Callable[[str], None] = lambda msg: None
         self.crashed: bool = False
+        self._context: Any = None
+        self._handler: Callable[[], None] | None = None
 
     async def _handle_target_crashed(self, target_id: str) -> None:
         """Handle a CDP ``Target.targetCrashed`` event."""
@@ -32,4 +34,16 @@ class CrashWatchdog:
 
     def attach(self, context: Any) -> None:
         """Wire real events from a Playwright context to this watchdog."""
-        context.on("close", lambda: self._on_connection_lost())
+        self._context = context
+        self._handler = self._on_connection_lost
+        context.on("close", self._handler)
+
+    def detach(self) -> None:
+        """Stop listening to the attached context (an intentional close is not a crash)."""
+        if self._context is not None and self._handler is not None:
+            try:
+                self._context.remove_listener("close", self._handler)
+            except Exception:  # noqa: BLE001 - context may already be gone
+                pass
+        self._context = None
+        self._handler = None
