@@ -129,6 +129,7 @@ def serialize_dom(
                     role=role,
                     xpath=xpath,
                     stable_hash=stable_hash,
+                    ax_name=node.get("ax_name"),
                     attributes=attrs,
                     interactive=True,
                     visible=True,

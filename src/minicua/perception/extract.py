@@ -92,6 +92,18 @@ _EXTRACT_JS = r"""
     return (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 200);
   }
 
+  function getAXName(el) {
+    const al = el.getAttribute('aria-label');
+    if (al && al.trim()) return al.trim();
+    if (el.id) {
+      const lab = document.querySelector('label[for="' + el.id + '"]');
+      if (lab) { const t = (lab.innerText || lab.textContent || '').trim(); if (t) return t; }
+    }
+    const title = el.getAttribute('title');
+    if (title && title.trim()) return title.trim();
+    return getLabel(el) || null;
+  }
+
   function directText(el) {
     let s = '';
     for (const c of el.childNodes) {
@@ -141,6 +153,7 @@ _EXTRACT_JS = r"""
           visible: true,
           attrs: getAttrs(child),
           xpath: getXPath(child),
+          ax_name: getAXName(child),
         });
         walk(child, true);
       } else {

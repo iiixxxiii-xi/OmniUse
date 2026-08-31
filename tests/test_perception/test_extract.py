@@ -78,3 +78,17 @@ async def test_extract_distinct_xpaths_for_siblings(session):
     await session.page.set_content("<button>A</button><button>B</button>")
     state = await extract_state(session.page)
     assert state.selector_map[1].xpath != state.selector_map[2].xpath
+
+
+@pytest.mark.asyncio
+async def test_extract_populates_ax_name_from_aria_label(session):
+    await session.page.set_content("<button aria-label='Submit form'>Go</button>")
+    state = await extract_state(session.page)
+    assert state.selector_map[1].ax_name == "Submit form"
+
+
+@pytest.mark.asyncio
+async def test_extract_ax_name_falls_back_to_text(session):
+    await session.page.set_content("<button>Plain</button>")
+    state = await extract_state(session.page)
+    assert state.selector_map[1].ax_name == "Plain"

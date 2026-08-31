@@ -106,3 +106,9 @@ def test_serialize_respects_start_index():
     _, selector_map = serialize_dom(nodes, start_index=5)
     assert 5 in selector_map
     assert 1 not in selector_map
+
+
+def test_serialize_preserves_provided_ax_name():
+    nodes = [{"tag": "button", "text": "Go", "interactive": True, "attrs": {}, "ax_name": "Submit"}]
+    _, selector_map = serialize_dom(nodes)
+    assert selector_map[1].ax_name == "Submit"
