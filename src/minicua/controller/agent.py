@@ -37,10 +37,12 @@ from minicua.browser.session import BrowserSession
 from minicua.controller.budget import Budget
 from minicua.controller.llm import (
     ChatModel,
+    ImageBlock,
     Message,
     ModelError,
     ModelInvalidResponseError,
     ModelOutput,
+    TextBlock,
 )
 from minicua.controller.retry import MODEL_RETRY_POLICY, retry_model_call
 from minicua.core.errors import BrowserError, CrashError
@@ -150,6 +152,18 @@ def _render_observation(results: list[ActionResult]) -> str:
         else:
             lines.append(f"Action failed: {r.error or 'unknown error'} (code={r.error_code})")
     return "\n".join(lines)
+
+
+def _build_state_message(state: BrowserState) -> Message:
+    """Render a perceived state into a user message (text, plus an image block
+    when a screenshot was captured)."""
+    text = _render_state(state.url, state.title, state.dom_text)
+    if state.screenshot:
+        return Message(
+            role="user",
+            content=[TextBlock(text=text), ImageBlock(image_base64=state.screenshot)],
+        )
+    return Message(role="user", content=text)
 
 
 # --------------------------------------------------------------------------- #
@@ -341,7 +355,7 @@ class Agent:
             use_vision=self.use_vision,
             model_supports_vision=self.model.supports_vision,
         )
-        self._messages.append(Message(role="user", content=_render_state(state.url, state.title, state.dom_text)))
+        self._messages.append(_build_state_message(state))
 
         # think (with transient retry + requery on malformed output)
         output, actions = await self._think()

@@ -5,6 +5,7 @@ import pytest
 from minicua.controller.llm import (
     AnthropicModel,
     FakeModel,
+    ImageBlock,
     Message,
     ModelAuthError,
     ModelError,
@@ -15,6 +16,7 @@ from minicua.controller.llm import (
     ModelUsage,
     OpenAIModel,
     ScriptExhaustedError,
+    TextBlock,
     ToolCall,
 )
 
@@ -151,6 +153,27 @@ def test_model_errors_are_cua_errors():
         assert isinstance(err, ModelError)
         assert isinstance(err, Exception)
         assert err.category  # every model error carries a category
+
+
+# --------------------------------------------------------------------------- #
+# Message content blocks (vision support)
+# --------------------------------------------------------------------------- #
+
+
+def test_message_accepts_vision_content_blocks():
+    msg = Message(
+        role="user",
+        content=[TextBlock(text="DOM snapshot"), ImageBlock(image_base64="aGVsbG8=")],
+    )
+    assert msg.content[0].type == "text"
+    assert msg.content[0].text == "DOM snapshot"
+    assert msg.content[1].type == "image"
+    assert msg.content[1].image_base64 == "aGVsbG8="
+
+
+def test_message_defaults_to_plain_text():
+    assert Message(role="user", content="hi").content == "hi"
+    assert Message(role="system").content == ""
 
 
 # --------------------------------------------------------------------------- #

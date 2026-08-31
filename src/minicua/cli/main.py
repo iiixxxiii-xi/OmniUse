@@ -2,6 +2,7 @@
 
 import typer
 
+from minicua.cli.chat import chat_command
 from minicua.cli.eval import eval_command
 from minicua.cli.report import report_command
 from minicua.cli.run import run_command
@@ -15,6 +16,7 @@ app = typer.Typer(
 app.command("run")(run_command)
 app.command("eval")(eval_command)
 app.command("report")(report_command)
+app.command("chat")(chat_command)
 
 
 def main() -> None:

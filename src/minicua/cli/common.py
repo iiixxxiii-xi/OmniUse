@@ -1,7 +1,17 @@
 """Shared helpers for the CLI commands."""
 
 import json
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
+
+from minicua.controller.llm import ChatModel, FakeModel, OpenAIModel
+
+load_dotenv()
+
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 
 def load_script(path: str | Path) -> list:
@@ -19,3 +29,44 @@ def load_script(path: str | Path) -> list:
     if isinstance(data, dict):
         return [data]
     raise ValueError("script file must be a JSON list (or single object) of responses")
+
+
+def resolve_model(model_id: str) -> ChatModel:
+    """Map a ``--model`` string to a :class:`ChatModel` instance.
+
+    ``fake`` (default) needs no API key. ``deepseek/<id>`` and ``dashscope/<id>``
+    (alias ``qwen/<id>``) select the OpenAI-compatible adapter and read their
+    credentials from the environment (``.env`` via python-dotenv). DeepSeek is
+    text-only (DOM); DashScope/Qwen is vision-capable.
+    """
+    model_id = (model_id or "").strip()
+    if model_id in ("", "fake", "FakeModel", "mock", "MockModel"):
+        return FakeModel()
+
+    if model_id.startswith("deepseek/"):
+        name = model_id.split("/", 1)[1]
+        api_key = os.environ.get("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise ValueError("deepseek model selected but DEEPSEEK_API_KEY is not set (check .env)")
+        return OpenAIModel(
+            model=name,
+            base_url=os.environ.get("DEEPSEEK_BASE_URL", DEEPSEEK_BASE_URL),
+            api_key=api_key,
+            supports_vision=False,
+        )
+
+    if model_id.startswith(("dashscope/", "qwen/")):
+        name = model_id.split("/", 1)[1]
+        api_key = os.environ.get("DASHSCOPE_API_KEY")
+        if not api_key:
+            raise ValueError("dashscope/qwen model selected but DASHSCOPE_API_KEY is not set (check .env)")
+        return OpenAIModel(
+            model=name,
+            base_url=os.environ.get("DASHSCOPE_BASE_URL", DASHSCOPE_BASE_URL),
+            api_key=api_key,
+            supports_vision=True,
+        )
+
+    raise ValueError(
+        f"unrecognized model '{model_id}'; use 'fake', 'deepseek/<id>', 'dashscope/<id>', or 'qwen/<id>'"
+    )

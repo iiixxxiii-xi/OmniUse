@@ -4,9 +4,10 @@ import pytest
 
 from minicua.browser.session import BrowserSession
 from minicua.controller.agent import Agent, StopReason
-from minicua.controller.llm import FakeModel, ModelOutput, ModelRateLimitError
+from minicua.controller.llm import FakeModel, ImageBlock, ModelOutput, ModelRateLimitError, TextBlock
 from minicua.core.errors import BrowserError
 from minicua.core.retry import RetryPolicy
+from minicua.perception.dom import BrowserState
 
 
 # --------------------------------------------------------------------------- #
@@ -131,6 +132,42 @@ async def test_agent_feeds_action_error_back_to_model(session):
     second_call_messages = model.calls[1][0]
     observations = [m.content for m in second_call_messages if m.role == "user"]
     assert any("not in browser state" in text for text in observations)
+
+
+# --------------------------------------------------------------------------- #
+# perception -> model vision wiring
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_agent_passes_screenshot_as_image_block_in_vision_mode(session, monkeypatch):
+    async def fake_extract_state(page, *, use_vision="dom_only", model_supports_vision=False):
+        return BrowserState(url="http://x", title="t", dom_text="[1] button", screenshot="aGVsbG8=")
+
+    monkeypatch.setattr("minicua.controller.agent.extract_state", fake_extract_state)
+    model = FakeModel(responses=[{"name": "done", "params": {"success": True}}])
+    agent = Agent(session=session, model=model, use_vision="vision")
+    await agent.run(task="x")
+
+    state_messages = [m for m in model.calls[0][0] if m.role == "user"]
+    content = state_messages[0].content
+    assert isinstance(content, list)
+    assert any(isinstance(b, ImageBlock) and b.image_base64 == "aGVsbG8=" for b in content)
+    assert any(isinstance(b, TextBlock) and "button" in b.text for b in content)
+
+
+@pytest.mark.asyncio
+async def test_agent_dom_only_uses_text_only_content(session, monkeypatch):
+    async def fake_extract_state(page, *, use_vision="dom_only", model_supports_vision=False):
+        return BrowserState(url="http://x", title="t", dom_text="[1] button", screenshot=None)
+
+    monkeypatch.setattr("minicua.controller.agent.extract_state", fake_extract_state)
+    model = FakeModel(responses=[{"name": "done", "params": {"success": True}}])
+    agent = Agent(session=session, model=model, use_vision="dom_only")
+    await agent.run(task="x")
+
+    state_messages = [m for m in model.calls[0][0] if m.role == "user"]
+    assert isinstance(state_messages[0].content, str)
 
 
 # --------------------------------------------------------------------------- #

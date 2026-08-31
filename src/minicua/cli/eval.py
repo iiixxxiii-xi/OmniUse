@@ -5,8 +5,8 @@ from pathlib import Path
 
 import typer
 
-from minicua.cli.common import load_script
-from minicua.controller.llm import FakeModel
+from minicua.cli.common import load_script, resolve_model
+from minicua.controller.llm import ChatModel, FakeModel
 from minicua.eval.errors import TaskDefinitionError
 from minicua.eval.metrics_aggregate import aggregate
 from minicua.eval.report import write_report
@@ -41,6 +41,16 @@ def eval_command(
         "--script",
         help="Optional JSON list of scripted responses applied to each task.",
     ),
+    model: str = typer.Option(
+        "fake",
+        "--model",
+        help="Model: fake, deepseek/<id>, dashscope/<id>, or qwen/<id>.",
+    ),
+    use_vision: str = typer.Option(
+        "auto",
+        "--use-vision",
+        help="Vision mode: dom_only, vision, or auto (capture iff the model supports it).",
+    ),
     max_steps: int = typer.Option(20, "--max-steps", help="Maximum agent steps per task."),
 ) -> None:
     """Run a task set and write markdown + CSV + JSON reports."""
@@ -61,7 +71,13 @@ def eval_command(
             raise typer.Exit(2)
         suite = _run_scripted_suite(tasks, responses, max_steps)
     else:
-        suite = asyncio.run(run_suite(tasks, FakeModel(), max_steps=max_steps))
+        model_obj: ChatModel
+        try:
+            model_obj = resolve_model(model)
+        except ValueError as exc:
+            typer.echo(f"error: {exc}", err=True)
+            raise typer.Exit(2)
+        suite = asyncio.run(run_suite(tasks, model_obj, max_steps=max_steps, use_vision=use_vision))
 
     out = Path(output)
     write_report(suite, out)

@@ -171,6 +171,7 @@ async def run_task(
     *,
     session: BrowserSession | None = None,
     max_steps: int | None = None,
+    use_vision: str = "dom_only",
 ) -> EvalResult:
     """Run one task: setup page → agent loop → declarative evaluator → result."""
     owns_session = session is None
@@ -187,6 +188,7 @@ async def run_task(
             model=model,
             task=task.instruction,
             max_steps=max_steps or task.max_steps,
+            use_vision=use_vision,
         )
         start = time.monotonic()
         agent_result = await agent.run(task.instruction)
@@ -205,10 +207,11 @@ async def run_suite(
     model: ChatModel,
     *,
     max_steps: int | None = None,
+    use_vision: str = "dom_only",
 ) -> SuiteResult:
     """Run every task against the same model and aggregate the six metrics."""
     results: list[EvalResult] = []
     for task in tasks:
-        results.append(await run_task(task, model, max_steps=max_steps))
+        results.append(await run_task(task, model, max_steps=max_steps, use_vision=use_vision))
     metrics = aggregate([r.event_log for r in results], [r.score for r in results])
     return SuiteResult(results=results, metrics=metrics)

@@ -27,8 +27,10 @@ they carry their configuration (model id, api key, vision support) but their
 wires the vendor SDKs.
 """
 
+import asyncio
+import json
 from collections.abc import Sequence
-from typing import Any, Literal, Protocol
+from typing import Annotated, Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -41,11 +43,37 @@ from minicua.core.errors import CUAError
 MessageRole = Literal["system", "user", "assistant", "tool"]
 
 
+class TextBlock(BaseModel):
+    """A text content block (the non-vision branch of a message's content)."""
+
+    type: Literal["text"] = "text"
+    text: str
+
+
+class ImageBlock(BaseModel):
+    """An image content block: raw base64-encoded bytes (no ``data:`` prefix).
+
+    The adapter prepends the ``data:image/png;base64,`` prefix when translating
+    to a provider's multimodal wire format.
+    """
+
+    type: Literal["image"] = "image"
+    image_base64: str
+
+
+ContentBlock = Annotated[TextBlock | ImageBlock, Field(discriminator="type")]
+
+
 class Message(BaseModel):
-    """A single chat message. ``content`` is plain text (vision blocks come later)."""
+    """A single chat message.
+
+    ``content`` is plain text, or a list of :class:`ContentBlock` (text and/or
+    image) for multimodal (vision) messages. Plain-text usage stays fully
+    backward compatible.
+    """
 
     role: MessageRole
-    content: str = ""
+    content: str | list[ContentBlock] = ""
 
 
 class ToolCall(BaseModel):
@@ -273,28 +301,187 @@ class AnthropicModel:
         )
 
 
+def _get(obj: Any, key: str, default: Any = None) -> Any:
+    """Read ``key`` from a dict or an object (both shapes occur: SDK objects and
+    plain-dict test doubles)."""
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
+def to_openai_messages(messages: Sequence[Message]) -> list[dict[str, Any]]:
+    """Translate CUA :class:`Message` objects into the OpenAI chat-completion shape.
+
+    Plain-text content is passed through as a string; multimodal content (a list
+    of :class:`ContentBlock`) becomes the OpenAI ``image_url`` part format with a
+    ``data:image/png;base64,`` prefix on each image.
+    """
+    converted: list[dict[str, Any]] = []
+    for m in messages:
+        content: str | list[dict[str, Any]]
+        if isinstance(m.content, str):
+            content = m.content
+        else:
+            parts: list[dict[str, Any]] = []
+            for block in m.content:
+                if block.type == "text":
+                    parts.append({"type": "text", "text": block.text})
+                elif block.type == "image":
+                    parts.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{block.image_base64}"},
+                        }
+                    )
+            content = parts
+        converted.append({"role": m.role, "content": content})
+    return converted
+
+
+def parse_openai_choice(choice: Any, usage: Any | None = None) -> ModelOutput:
+    """Convert an OpenAI chat-completion ``choice`` into a :class:`ModelOutput`.
+
+    ``choice`` may be a dict or an SDK object; ``usage`` is ``response.usage``
+    (dict or object). Tool calls are unwrapped from the OpenAI ``function`` shape
+    and their JSON-string arguments parsed back into a dict.
+    """
+    message = _get(choice, "message", None) or {}
+
+    content = _get(message, "content", None)
+    if isinstance(content, str):
+        thought = content or None
+    elif isinstance(content, list):
+        thought = "".join(
+            _get(b, "text", "") or "" for b in content if _get(b, "type", None) == "text"
+        ) or None
+    else:
+        thought = None
+
+    tool_calls: list[ToolCall] = []
+    for tc in _get(message, "tool_calls", None) or []:
+        fn = _get(tc, "function", None) or {}
+        name = _get(fn, "name", "") or ""
+        raw_arguments = _get(fn, "arguments", "{}") or "{}"
+        try:
+            arguments = json.loads(raw_arguments)
+        except (TypeError, json.JSONDecodeError):
+            arguments = {}
+        if not isinstance(arguments, dict):
+            arguments = {}
+        tool_calls.append(ToolCall(name=name, arguments=arguments))
+
+    usage_obj: ModelUsage | None = None
+    if usage is not None:
+        usage_obj = ModelUsage(
+            input_tokens=int(_get(usage, "prompt_tokens", 0) or 0),
+            output_tokens=int(_get(usage, "completion_tokens", 0) or 0),
+        )
+
+    return ModelOutput(thought=thought, tool_calls=tool_calls, usage=usage_obj)
+
+
+def classify_openai_error(exc: Exception) -> ModelError:
+    """Map an OpenAI SDK / transport exception to a typed :class:`ModelError`.
+
+    Classification is attribute-based (``status_code``, exception type name,
+    message) so it works with real ``openai`` exceptions and plain test doubles:
+
+    * 401/403 → :class:`ModelAuthError` (permanent).
+    * 429     → :class:`ModelRateLimitError` (transient).
+    * 5xx     → :class:`ModelServerError` (transient).
+    * other 4xx → :class:`ModelError` (permanent).
+    * timeout → :class:`ModelTimeoutError` (transient).
+    * connection/network → :class:`ModelServerError` (transient).
+    """
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        if status in (401, 403):
+            return ModelAuthError(f"authentication failed (HTTP {status}): {exc}")
+        if status == 429:
+            return ModelRateLimitError(f"rate limited (HTTP 429): {exc}")
+        if status >= 500:
+            return ModelServerError(f"provider server error (HTTP {status}): {exc}")
+        if status >= 400:
+            return ModelError(f"request rejected (HTTP {status}): {exc}")
+
+    name = type(exc).__name__.lower()
+    msg = str(exc).lower()
+    if (
+        "timeout" in name
+        or isinstance(exc, (asyncio.TimeoutError, TimeoutError))
+        or "timeout" in msg
+        or "timed out" in msg
+    ):
+        return ModelTimeoutError(f"request timed out: {exc}")
+    if "connection" in name or any(t in msg for t in ("connection", "network", "refused", "reset")):
+        return ModelServerError(f"connection failure: {exc}")
+    return ModelError(f"OpenAI API call failed: {exc}")
+
+
 class OpenAIModel:
-    """OpenAI adapter skeleton (see :class:`AnthropicModel`)."""
+    """OpenAI-compatible chat adapter (DeepSeek, Qwen/DashScope, OpenAI, …).
+
+    Backs :meth:`generate` with the ``openai`` SDK's :class:`~openai.AsyncOpenAI`
+    client, created lazily so the adapter can be constructed without a key (for
+    tests) and injected with a ``client`` double. ``base_url`` + ``api_key``
+    select the endpoint; ``supports_vision`` gates multimodal content.
+    """
 
     def __init__(
         self,
         *,
         model: str = "gpt-4o",
         api_key: str | None = None,
+        base_url: str | None = None,
         supports_vision: bool = True,
         max_tokens: int = 4096,
+        timeout_seconds: float = 120.0,
+        client: Any | None = None,
     ) -> None:
         self.model = model
         self.api_key = api_key
+        self.base_url = base_url
         self.supports_vision = supports_vision
         self.max_tokens = max_tokens
+        self.timeout_seconds = timeout_seconds
+        self._client = client
+
+    def _get_client(self) -> Any:
+        if self._client is None:
+            if not self.api_key:
+                raise ModelNotConfiguredError(
+                    f"OpenAIModel({self.model!r}) needs an api_key (or an injected client)"
+                )
+            from openai import AsyncOpenAI
+
+            self._client = AsyncOpenAI(
+                base_url=self.base_url,
+                api_key=self.api_key,
+                timeout=self.timeout_seconds,
+            )
+        return self._client
 
     async def generate(
         self,
         messages: Sequence[Message],
         tools: Sequence[dict[str, Any]],
     ) -> ModelOutput:
-        raise ModelNotConfiguredError(
-            "OpenAIModel.generate() is a skeleton; the real OpenAI API call "
-            "is deferred to the integration stage"
-        )
+        client = self._get_client()
+        try:
+            response = await client.chat.completions.create(
+                model=self.model,
+                messages=to_openai_messages(messages),
+                tools=list(tools) if tools else None,
+                max_tokens=self.max_tokens,
+            )
+        except ModelError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - any SDK/transport error is classified
+            raise classify_openai_error(exc) from exc
+
+        choices = _get(response, "choices", None) or []
+        if not choices:
+            raise ModelInvalidResponseError("OpenAI returned an empty choices list")
+        return parse_openai_choice(choices[0], _get(response, "usage", None))

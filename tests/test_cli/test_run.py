@@ -4,7 +4,10 @@ import json
 
 from typer.testing import CliRunner
 
+from minicua.cli import run as run_mod
 from minicua.cli.main import app
+from minicua.controller.llm import FakeModel
+from minicua.eval.runner import EvalResult
 
 runner = CliRunner()
 
@@ -45,6 +48,36 @@ def test_run_scripted_task_succeeds(tmp_path):
     assert result.exit_code == 0, result.output
     assert "success" in result.output.lower()
     assert "score" in result.output.lower()
+
+
+def test_run_help_shows_model_and_use_vision_options():
+    result = runner.invoke(app, ["run", "--help"])
+    assert result.exit_code == 0
+    assert "--model" in result.output
+    assert "--use-vision" in result.output
+
+
+def test_run_model_option_wires_model_and_use_vision(tmp_path, monkeypatch):
+    task_file = tmp_path / "task.json"
+    task_file.write_text(json.dumps(_CLICK_TASK), encoding="utf-8")
+
+    captured = {}
+
+    async def fake_run_task(task, model, *, session=None, max_steps=None, use_vision="dom_only"):
+        captured["model"] = model
+        captured["use_vision"] = use_vision
+        return EvalResult(task_id=task.id, score=1.0, success=True)
+
+    monkeypatch.setattr(run_mod, "resolve_model", lambda mid: FakeModel())
+    monkeypatch.setattr(run_mod, "run_task", fake_run_task)
+
+    result = runner.invoke(
+        app,
+        ["run", str(task_file), "--model", "dashscope/qwen3-vl-flash", "--use-vision", "vision"],
+    )
+    assert result.exit_code == 0, result.output
+    assert isinstance(captured["model"], FakeModel)
+    assert captured["use_vision"] == "vision"
 
 
 def test_run_scripted_task_failure_exits_nonzero(tmp_path):
