@@ -18,6 +18,7 @@ from typing import Any
 from playwright.async_api import Page
 
 from minicua.perception.dom import BrowserState, ScrollInfo, Viewport
+from minicua.perception.screenshot import capture, should_capture
 from minicua.perception.serializer import serialize_dom
 
 logger = logging.getLogger("minicua.perception.extract")
@@ -212,10 +213,18 @@ async def _read_scroll(page: Page) -> ScrollInfo | None:
         return None
 
 
-async def extract_state(page: Page) -> BrowserState:
-    """Build a :class:`BrowserState` from ``page`` (DOM-first, no screenshot).
+async def extract_state(
+    page: Page,
+    *,
+    use_vision: str = "dom_only",
+    model_supports_vision: bool = False,
+) -> BrowserState:
+    """Build a :class:`BrowserState` from ``page`` (DOM-first, screenshot optional).
 
-    DOM extraction failure degrades to an empty state rather than raising.
+    DOM is always extracted; a screenshot is added only when the ``use_vision``
+    policy says so. Any failure (DOM probe, viewport, scroll, screenshot)
+    degrades to a safe default instead of raising, so perception never crashes
+    the agent loop.
     """
     url = page.url or ""
     title = await _safe_evaluate(page, "() => document.title", "")
@@ -229,12 +238,16 @@ async def extract_state(page: Page) -> BrowserState:
 
     dom_text, selector_map = serialize_dom(raw_nodes)
 
+    screenshot: str | None = None
+    if should_capture(use_vision, model_supports_vision):
+        screenshot = await capture(page)
+
     return BrowserState(
         url=url,
         title=title,
         dom_text=dom_text,
         selector_map=selector_map,
-        screenshot=None,
+        screenshot=screenshot,
         viewport=await _read_viewport(page),
         scroll=await _read_scroll(page),
     )
