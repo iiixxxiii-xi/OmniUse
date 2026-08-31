@@ -104,6 +104,17 @@ async def element_attribute(
         return None
 
 
+async def element_count(session: BrowserSession, *, selector: str | None = None, **extra: Any) -> int:
+    """Number of elements matching ``selector`` (``0`` on failure)."""
+    if not selector:
+        return 0
+    try:
+        return await session.page.locator(selector).count()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("element_count(%r) failed: %s", selector, exc)
+        return 0
+
+
 async def cookie_exists(
     session: BrowserSession,
     *,
@@ -150,6 +161,7 @@ GETTERS: dict[str, Getter] = {
     "element_exists": element_exists,
     "element_text": element_text,
     "element_attribute": element_attribute,
+    "element_count": element_count,
     "cookie_exists": cookie_exists,
     "local_storage": local_storage,
     "screenshot": screenshot,

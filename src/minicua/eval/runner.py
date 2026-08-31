@@ -40,6 +40,19 @@ from minicua.state.events import (
 
 logger = logging.getLogger("minicua.eval.runner")
 
+#: Synthetic origin used to serve inline ``html`` fixtures, so a self-contained
+#: task gets a real origin (cookies / localStorage / URL checks all work).
+_FIXTURE_URL = "http://minicua.local/"
+
+
+async def _serve_fixture(session: BrowserSession, html: str) -> None:
+    """Serve an inline ``html`` fixture on a real origin (cookies/localStorage work)."""
+    async def handler(route: Any) -> None:
+        await route.fulfill(status=200, content_type="text/html", body=html)
+
+    await session.context.route(_FIXTURE_URL + "**", handler)
+    await session.page.goto(_FIXTURE_URL)
+
 
 class EvalResult(BaseModel):
     """The outcome of one task run: evaluator score + flat run metrics."""
@@ -165,7 +178,7 @@ async def run_task(
     try:
         await session.start()
         if task.html is not None:
-            await session.page.set_content(task.html)
+            await _serve_fixture(session, task.html)
         elif task.initial_url:
             await session.navigate(task.initial_url)
 

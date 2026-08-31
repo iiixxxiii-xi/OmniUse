@@ -14,6 +14,7 @@ from minicua.eval.getters import (
     GETTERS,
     cookie_exists,
     element_attribute,
+    element_count,
     element_exists,
     element_text,
     get_getter,
@@ -93,6 +94,13 @@ async def test_element_attribute_getter_missing_returns_none(session):
     assert await element_attribute(session, selector="#none", attribute="value") is None
 
 
+@pytest.mark.asyncio
+async def test_element_count_getter(session):
+    await session.page.set_content("<ul><li>a</li><li>b</li><li>c</li></ul>")
+    assert await element_count(session, selector="li") == 3
+    assert await element_count(session, selector="p") == 0
+
+
 # --------------------------------------------------------------------------- #
 # cookie / localStorage getters
 # --------------------------------------------------------------------------- #
@@ -127,6 +135,7 @@ def test_registry_contains_expected_getters():
         "element_exists",
         "element_text",
         "element_attribute",
+        "element_count",
         "cookie_exists",
         "local_storage",
         "screenshot",

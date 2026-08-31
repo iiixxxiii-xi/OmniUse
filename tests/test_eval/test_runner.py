@@ -81,6 +81,26 @@ async def test_runner_uses_initial_url(session):
 
 
 @pytest.mark.asyncio
+async def test_runner_cookie_task_on_synthetic_origin(session):
+    # html fixtures are served on a real origin, so a cookie set by the page is
+    # readable by the evaluator's cookie_exists getter.
+    task = TaskDef(
+        id="cookie_task",
+        instruction="set the theme cookie",
+        html="<button id=set onclick=\"document.cookie='theme=dark; path=/'\">Set theme</button>",
+        evaluator={
+            "func": "element_exists_metric",
+            "result": {"getter": "cookie_exists", "name": "theme"},
+            "expected": {"expected": True},
+        },
+    )
+    model = FakeModel(responses=[{"name": "click", "params": {"index": 1}}, {"name": "done", "params": {"success": True}}])
+    result = await run_task(task, model, session=session)
+    assert result.success is True
+    assert result.score == 1.0
+
+
+@pytest.mark.asyncio
 async def test_runner_model_error_is_structured_not_crash(session):
     # A model that runs out of script fails the run but the runner still returns a result.
     task = _click_task()
