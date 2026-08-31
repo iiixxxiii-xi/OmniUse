@@ -153,3 +153,15 @@ async def test_agent_requires_started_session():
     agent = Agent(session=not_started, model=FakeModel(responses=[{"name": "done", "params": {}}]))
     with pytest.raises(BrowserError):
         await agent.run(task="x")
+
+
+@pytest.mark.asyncio
+async def test_agent_surfaces_unexpected_error(session):
+    # A non-ModelError exception is not retryable and not requeryable; the run
+    # surfaces it as a structured ERROR result instead of crashing the caller.
+    model = FakeModel(responses=[RuntimeError("boom")])
+    agent = Agent(session=session, model=model)
+    result = await agent.run(task="x")
+    assert result.done is False
+    assert result.stop_reason == StopReason.ERROR
+    assert "RuntimeError" in result.error

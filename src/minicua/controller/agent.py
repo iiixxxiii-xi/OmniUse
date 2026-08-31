@@ -227,6 +227,9 @@ class Agent:
             return self._result(StopReason.INVALID_RESPONSE, error=str(exc))
         except ModelError as exc:
             return self._result(StopReason.MODEL_ERROR, error=str(exc))
+        except Exception as exc:  # noqa: BLE001 - surface unexpected failures as a structured result
+            logger.exception("unexpected error during agent run")
+            return self._result(StopReason.ERROR, error=f"{type(exc).__name__}: {exc}")
 
     def _result(self, reason: StopReason, error: str | None = None) -> AgentResult:
         return AgentResult(
