@@ -12,6 +12,9 @@ dependencies = [
     "openai>=1.40",
 ]
 
+[project.scripts]
+minicua = "minicua.cli.main:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.2",
