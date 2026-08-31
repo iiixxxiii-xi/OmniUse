@@ -13,6 +13,22 @@ load_dotenv()
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
+#: The two agent operating modes selectable via ``--mode``.
+VALID_MODES = ("browser", "desktop")
+
+
+def require_vision_model(model: ChatModel, mode: str) -> None:
+    """Raise :class:`ValueError` if ``mode`` is desktop and ``model`` lacks vision.
+
+    Desktop mode perceives purely through screenshots, so a text-only model
+    cannot drive it. Callers turn this into a clean CLI error + exit code.
+    """
+    if mode == "desktop" and not getattr(model, "supports_vision", False):
+        raise ValueError(
+            "desktop mode requires a vision model (e.g. --model dashscope/qwen3-vl-flash); "
+            "the selected model does not support vision"
+        )
+
 
 def load_script(path: str | Path) -> list:
     """Load scripted :class:`FakeModel` responses from a JSON file.

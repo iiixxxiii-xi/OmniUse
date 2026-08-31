@@ -11,6 +11,9 @@ dependencies = [
     "anthropic>=0.34",
     "openai>=1.40",
     "python-dotenv>=1.2.3",
+    "pyautogui>=0.9.54",
+    "mss>=10.2.0",
+    "pillow>=12.3.0",
 ]
 
 [project.scripts]

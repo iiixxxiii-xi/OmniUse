@@ -12,7 +12,7 @@ from collections.abc import Callable
 import typer
 
 from minicua.chat.runner import ChatRun, ChatRunner
-from minicua.cli.common import resolve_model
+from minicua.cli.common import VALID_MODES, require_vision_model, resolve_model
 
 _EXIT_COMMANDS = frozenset({"exit", "quit"})
 
@@ -89,14 +89,32 @@ def chat_command(
         "--headless",
         help="Run headless (hide the browser window; default shows it so you can watch).",
     ),
+    mode: str = typer.Option(
+        "browser",
+        "--mode",
+        help="Operating mode: browser (DOM) or desktop (screenshot + mouse/keyboard/shell).",
+    ),
 ) -> None:
-    """Start an interactive REPL that drives a browser from natural-language instructions."""
+    """Start an interactive REPL that drives the browser or the whole desktop."""
+    if mode not in VALID_MODES:
+        typer.echo(f"error: mode must be one of {VALID_MODES}", err=True)
+        raise typer.Exit(2)
+
     try:
         model_obj = resolve_model(model)
     except ValueError as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(2)
 
-    runner = ChatRunner(model_obj, max_steps=max_steps, use_vision=use_vision, headless=headless)
+    try:
+        require_vision_model(model_obj, mode)
+    except ValueError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(2)
+
+    if mode == "desktop":
+        runner = ChatRunner(model_obj, max_steps=max_steps, use_vision="vision", mode="desktop")
+    else:
+        runner = ChatRunner(model_obj, max_steps=max_steps, use_vision=use_vision, headless=headless)
     run_repl(runner)
     raise typer.Exit(0)

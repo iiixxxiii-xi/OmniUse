@@ -190,6 +190,10 @@ class ActionError(str, Enum):
     TAB_NOT_FOUND = "tab_not_found"
     PRESS_FAILED = "press_failed"
     EXECUTION_FAILED = "execution_failed"
+    # Desktop-mode failures.
+    INPUT_FAILED = "input_failed"
+    SHELL_FAILED = "shell_failed"
+    SHELL_TIMEOUT = "shell_timeout"
 
 
 class ActionResult(BaseModel):

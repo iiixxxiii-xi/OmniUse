@@ -47,6 +47,8 @@ from minicua.controller.llm import (
 from minicua.controller.retry import MODEL_RETRY_POLICY, retry_model_call
 from minicua.core.errors import BrowserError, CrashError
 from minicua.core.retry import RetryPolicy
+from minicua.desktop.actions import DesktopAction, execute_desktop, get_desktop_registry
+from minicua.desktop.perception import DesktopState, extract_desktop_state
 from minicua.perception.dom import BrowserState
 from minicua.perception.extract import extract_state
 from minicua.recovery.crash import STORAGE_STATE_FILENAME, RecoveryCheckpoint, recover, save_checkpoint
@@ -84,7 +86,7 @@ class StepRecord(BaseModel):
 
     step: int
     thought: str | None = None
-    actions: list[Action] = Field(default_factory=list)
+    actions: list[Action | DesktopAction] = Field(default_factory=list)
     results: list[ActionResult] = Field(default_factory=list)
     page_changed: bool = False
     recoveries: int = 0
@@ -97,7 +99,7 @@ class StepResult(BaseModel):
     success: bool | None = None
     submission: str | None = None
     thought: str | None = None
-    actions: list[Action] = Field(default_factory=list)
+    actions: list[Action | DesktopAction] = Field(default_factory=list)
     results: list[ActionResult] = Field(default_factory=list)
     page_changed: bool = False
     recoveries: int = 0
@@ -128,6 +130,14 @@ _SYSTEM_PROMPT_TEMPLATE = (
     "You are a browser automation agent. Complete the task by calling tools, one step at a time.\n"
     "Task: {task}\n"
     "Reference page elements by their [index] from the current page elements list.\n"
+    "When the task is finished, call the 'done' tool."
+)
+
+_DESKTOP_SYSTEM_PROMPT_TEMPLATE = (
+    "You are a desktop automation agent. Complete the task by calling tools, one step at a time.\n"
+    "Task: {task}\n"
+    "You see a screenshot of the current screen. Control the computer using screen "
+    "coordinates (x, y), keyboard actions, and shell commands.\n"
     "When the task is finished, call the 'done' tool."
 )
 
@@ -166,6 +176,21 @@ def _build_state_message(state: BrowserState) -> Message:
     return Message(role="user", content=text)
 
 
+def _build_desktop_state_message(state: DesktopState) -> Message:
+    """Render a desktop perception snapshot into a user message (image + size).
+
+    Desktop has no DOM, so the screenshot is the primary signal; screen size is
+    the only textual context (helps the model sanity-check coordinates).
+    """
+    text = f"Screen: {state.width}x{state.height}"
+    if state.screenshot:
+        return Message(
+            role="user",
+            content=[TextBlock(text=text), ImageBlock(image_base64=state.screenshot)],
+        )
+    return Message(role="user", content=text)
+
+
 # --------------------------------------------------------------------------- #
 # Agent
 # --------------------------------------------------------------------------- #
@@ -176,9 +201,11 @@ class Agent:
 
     def __init__(
         self,
-        session: BrowserSession,
-        model: ChatModel,
+        session: BrowserSession | None = None,
+        model: ChatModel | None = None,
         *,
+        mode: str = "browser",
+        environment: Any = None,
         task: str = "",
         max_steps: int = 100,
         max_failures: int = 3,
@@ -197,13 +224,19 @@ class Agent:
         loop_threshold: int = 5,
         crash_watchdog: CrashWatchdog | None = None,
     ) -> None:
+        if mode not in ("browser", "desktop"):
+            raise ValueError(f"unknown agent mode {mode!r}; expected 'browser' or 'desktop'")
         self.session = session
         self.model = model
+        self.mode = mode
+        self.environment = environment
         self.task = task
         self.use_vision = use_vision
         self.max_requeries = max_requeries
         self.max_actions_per_step = max_actions_per_step
-        self.registry = registry or get_default_registry()
+        if registry is None:
+            registry = get_desktop_registry() if self.mode == "desktop" else get_default_registry()
+        self.registry = registry
         self.retry_policy = retry_policy or MODEL_RETRY_POLICY
 
         self.enable_recovery = enable_recovery
@@ -230,14 +263,73 @@ class Agent:
 
     # -- lifecycle ----------------------------------------------------------
 
+    def _is_desktop(self) -> bool:
+        return self.mode == "desktop"
+
     def _require_page(self):
+        if self.session is None:
+            raise BrowserError("browser mode requires a BrowserSession")
         page = self.session.page
         if page is None:
             raise BrowserError("browser session is not started (call start() first)")
         return page
 
+    def _require_environment(self):
+        """Return the active environment: the Playwright page (browser) or the desktop env."""
+        if self._is_desktop():
+            if self.environment is None:
+                raise BrowserError("desktop mode requires a DesktopEnvironment")
+            return self.environment
+        return self._require_page()
+
     def _system_prompt(self) -> str:
-        return _SYSTEM_PROMPT_TEMPLATE.format(task=self.task or "(no task)")
+        template = _DESKTOP_SYSTEM_PROMPT_TEMPLATE if self._is_desktop() else _SYSTEM_PROMPT_TEMPLATE
+        return template.format(task=self.task or "(no task)")
+
+    # -- mode hooks (overridden behavior for desktop vs. browser) -----------
+
+    async def _before_perceive(self) -> None:
+        """Recover from a browser crash before perceiving (desktop: no-op)."""
+        if not self._is_desktop():
+            await self._maybe_recover_from_crash()
+
+    async def _perceive(self):
+        """Snapshot the environment: DOM-first (browser) or screenshot-only (desktop)."""
+        if self._is_desktop():
+            return extract_desktop_state(self.environment)
+        page = self._require_page()
+        return await extract_state(
+            page,
+            use_vision=self.use_vision,
+            model_supports_vision=self.model.supports_vision if self.model is not None else False,
+        )
+
+    async def _execute(self, action: Action, state: Any) -> ActionResult:
+        """Run one validated action against the active environment."""
+        if self._is_desktop():
+            return await execute_desktop(action, self.environment, state)
+        page = self._require_page()
+        return await execute(action, page, state)
+
+    def _build_state_message(self, state: Any) -> Message:
+        """Render a perceived state into a user message (mode-aware)."""
+        if self._is_desktop():
+            return _build_desktop_state_message(state)
+        return _build_state_message(state)
+
+    def _supports_stale_recovery(self) -> bool:
+        """Stale-element relocalization is browser-only (index grounding)."""
+        return not self._is_desktop()
+
+    def _supports_page_change_guard(self) -> bool:
+        """Page-change detection is browser-only (DOM fingerprinting)."""
+        return not self._is_desktop()
+
+    def _action_model(self) -> type[Action] | type[DesktopAction]:
+        """Return the action union the model's tool calls validate against."""
+        if self._is_desktop():
+            return DesktopAction
+        return Action
 
     # -- recovery ----------------------------------------------------------
 
@@ -265,8 +357,8 @@ class Agent:
 
     async def _save_checkpoint(self) -> None:
         """Persist storage_state + task checkpoint for a later crash recovery."""
-        if self._checkpoint_dir is None:
-            return
+        if self._checkpoint_dir is None or self._is_desktop():
+            return  # desktop has no browser storage_state to checkpoint
         try:
             self._checkpoint_dir.mkdir(parents=True, exist_ok=True)
             await self.session.save_storage_state(self._checkpoint_dir / STORAGE_STATE_FILENAME)
@@ -281,8 +373,9 @@ class Agent:
         """Run the loop until ``done``, a budget limit, or a classified model failure."""
         if task is not None:
             self.task = task
-        self._require_page()
-        self._watchdog.attach(self.session.context)
+        self._require_environment()
+        if not self._is_desktop():
+            self._watchdog.attach(self.session.context)
         self.budget = self._new_budget()
         self.budget.start()
         self._messages = [Message(role="system", content=self._system_prompt())]
@@ -321,7 +414,8 @@ class Agent:
         finally:
             # The caller (e.g. the eval runner) closes the session after the run;
             # an intentional close must not be misread as a crash.
-            self._watchdog.detach()
+            if not self._is_desktop():
+                self._watchdog.detach()
 
     def _result(self, reason: StopReason, error: str | None = None) -> AgentResult:
         return AgentResult(
@@ -341,21 +435,15 @@ class Agent:
 
     async def step(self) -> StepResult:
         """Run one perceive→think→act cycle and return its structured outcome."""
-        page = self._require_page()
         if not self._messages:
             self._messages = [Message(role="system", content=self._system_prompt())]
 
-        # Recover from a browser crash before perceiving (fresh page + task state).
-        await self._maybe_recover_from_crash()
-        page = self._require_page()
+        # Recover from a browser crash before perceiving (desktop: no-op).
+        await self._before_perceive()
 
         # perceive
-        state = await extract_state(
-            page,
-            use_vision=self.use_vision,
-            model_supports_vision=self.model.supports_vision,
-        )
-        self._messages.append(_build_state_message(state))
+        state = await self._perceive()
+        self._messages.append(self._build_state_message(state))
 
         # think (with transient retry + requery on malformed output)
         output, actions = await self._think()
@@ -363,9 +451,11 @@ class Agent:
         if output.thought:
             self._messages.append(Message(role="assistant", content=output.thought))
 
-        # act (with stale-element recovery + page-change guard)
+        # act (with stale-element recovery + page-change guard; browser only)
         multi_action = len(actions) > 1
-        fingerprint_before = self._page_fingerprint(state) if multi_action else None
+        fingerprint_before = (
+            self._page_fingerprint(state) if multi_action and self._supports_page_change_guard() else None
+        )
 
         results: list[ActionResult] = []
         is_done = False
@@ -374,22 +464,25 @@ class Agent:
         page_changed_this_step = False
         recovered_this_step = 0
         for action in actions:
-            result = await execute(action, page, state)
+            result = await self._execute(action, state)
 
             # Stale-element recovery: re-perceive + relocalize, then re-execute
-            # with the fresh index rather than failing outright.
+            # with the fresh index rather than failing outright (index grounding
+            # is browser-only, so this is a no-op in desktop mode).
             if (
                 self.enable_recovery
+                and self._supports_stale_recovery()
                 and not result.success
                 and result.retryable
                 and result.error_code in _STALE_ERROR_CODES
             ):
+                page = self._require_page()
                 recovered = await recover_stale(action, state, page)
                 if recovered is not None:
                     logger.info("relocalized stale action %s; retrying with fresh index", action.name)
                     recovered_this_step += 1
                     action, state = recovered
-                    result = await execute(action, page, state)
+                    result = await self._execute(action, state)
 
             results.append(result)
             if action.name == "done":
@@ -404,8 +497,8 @@ class Agent:
 
             # Page-change guard: abort the remaining multi-action queue when the
             # page moved under us (e.g. a navigate re-rendered the whole DOM).
-            if multi_action and not is_done:
-                after = await extract_state(page)
+            if multi_action and not is_done and self._supports_page_change_guard():
+                after = await self._perceive()
                 if page_changed(fingerprint_before, self._page_fingerprint(after)):
                     page_changed_this_step = True
                     self.page_changes += 1
@@ -423,7 +516,10 @@ class Agent:
             for action in actions:
                 params = action.params.model_dump() if action.params is not None else {}
                 self.loop_detector.record_action(action.name, params)
-            self.loop_detector.record_page_state(state.url, state.dom_text, len(state.selector_map))
+            if self._is_desktop():
+                self.loop_detector.record_page_state("", "", 0)
+            else:
+                self.loop_detector.record_page_state(state.url, state.dom_text, len(state.selector_map))
             nudge = self.loop_detector.nudge_message()
             if nudge:
                 self._messages.append(Message(role="user", content=nudge))
@@ -487,7 +583,7 @@ class Agent:
             logger_=logger,
         )
 
-    def _parse_actions(self, output: ModelOutput) -> list[Action]:
+    def _parse_actions(self, output: ModelOutput) -> list[Any]:
         if not output.tool_calls:
             raise ModelInvalidResponseError("model returned no tool calls")
         if len(output.tool_calls) > self.max_actions_per_step:
@@ -495,10 +591,11 @@ class Agent:
                 f"model returned {len(output.tool_calls)} tool calls, "
                 f"exceeding max_actions_per_step={self.max_actions_per_step}"
             )
-        actions: list[Action] = []
+        model = self._action_model()
+        actions: list[Any] = []
         for tc in output.tool_calls:
             try:
-                actions.append(Action(name=tc.name, params=tc.arguments))
+                actions.append(model(name=tc.name, params=tc.arguments))
             except (ValidationError, ValueError, KeyError) as exc:
                 raise ModelInvalidResponseError(f"invalid tool call {tc.name!r}: {exc}") from exc
         return actions
