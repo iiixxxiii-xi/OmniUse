@@ -9,15 +9,23 @@ the agent's progress intact — no re-login, no re-planning from zero.
 Checkpoints are small JSON files; ``storage_state`` is a Playwright
 ``context.storage_state`` export. Both live under a caller-supplied directory so
 the controller can save them every step and recover to the most recent one.
+
+:class:`RecoveryCheckpoint` is the recovery layer's *minimal* projection of the
+full :class:`~minicua.state.checkpoint.Checkpoint` (task + step — just enough to
+resume). The persistence itself is delegated to the state layer: crash checkpoints
+are written with :func:`minicua.state.io.atomic_write_text` (so a crash mid-write
+can never corrupt the last checkpoint) and read with
+:func:`minicua.state.io.read_json_or_none` (so a torn file degrades to ``None``
+instead of raising). Durability and corruption handling live in exactly one place.
 """
 
-import json
 import logging
 from pathlib import Path
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from minicua.browser.session import BrowserSession
+from minicua.state.io import atomic_write_text, read_json_or_none
 
 logger = logging.getLogger("minicua.recovery.crash")
 
@@ -41,23 +49,23 @@ class RecoveryResult(BaseModel):
 
 
 def save_checkpoint(checkpoint_dir: str | Path, checkpoint: RecoveryCheckpoint) -> None:
-    """Persist ``checkpoint`` to ``checkpoint_dir / CHECKPOINT_FILENAME``."""
+    """Atomically persist ``checkpoint`` to ``checkpoint_dir / CHECKPOINT_FILENAME``."""
     directory = Path(checkpoint_dir)
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / CHECKPOINT_FILENAME
-    path.write_text(checkpoint.model_dump_json(indent=2), encoding="utf-8")
+    atomic_write_text(path, checkpoint.model_dump_json(indent=2))
     logger.info("saved recovery checkpoint to %s (step=%d)", path, checkpoint.step)
 
 
 def load_checkpoint(checkpoint_dir: str | Path) -> RecoveryCheckpoint | None:
     """Load a checkpoint, or ``None`` if it is missing / corrupt (never raises)."""
     path = Path(checkpoint_dir) / CHECKPOINT_FILENAME
-    if not path.is_file():
+    data = read_json_or_none(path)
+    if data is None or not isinstance(data, dict):
         return None
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
         return RecoveryCheckpoint.model_validate(data)
-    except (json.JSONDecodeError, OSError, ValueError) as exc:
+    except (ValidationError, ValueError, TypeError) as exc:
         logger.warning("could not load recovery checkpoint %s: %s", path, exc)
         return None
 
