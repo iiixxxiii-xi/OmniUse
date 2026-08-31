@@ -1,5 +1,6 @@
 """Controller layer: the perceive → think → act agent loop, budget, and retry."""
 
+from minicua.controller.budget import Budget
 from minicua.controller.llm import (
     AnthropicModel,
     ChatModel,
@@ -21,6 +22,7 @@ from minicua.controller.llm import (
 
 __all__ = [
     "AnthropicModel",
+    "Budget",
     "ChatModel",
     "FakeModel",
     "Message",
