@@ -1,0 +1,10 @@
+{
+  "id": "multiple_steps",
+  "instruction": "Click 'Start' first, then click 'Finish'.",
+  "html": "<button id=a onclick=\"this.dataset.done='1'\">Start</button><button id=b onclick=\"document.getElementById('out').textContent=document.getElementById('a').dataset.done?'done':'not-done'\">Finish</button><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "done" }
+  }
+}

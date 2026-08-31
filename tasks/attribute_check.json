@@ -1,0 +1,10 @@
+{
+  "id": "attribute_check",
+  "instruction": "Set the input value to 'alice'.",
+  "html": "<input id=name value=alice>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_attribute", "selector": "#name", "attribute": "value" },
+    "expected": { "expected": "alice" }
+  }
+}

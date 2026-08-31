@@ -1,0 +1,10 @@
+{
+  "id": "save_localstorage",
+  "instruction": "Click the button to save the token to local storage.",
+  "html": "<button id=save onclick=\"localStorage.setItem('token','abc123')\">Save token</button>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "local_storage", "key": "token" },
+    "expected": { "expected": "abc123" }
+  }
+}

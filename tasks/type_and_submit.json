@@ -1,0 +1,10 @@
+{
+  "id": "type_and_submit",
+  "instruction": "Type 'alice' into the name field, then click Submit.",
+  "html": "<input id=name placeholder=Name><button id=go onclick=\"document.getElementById('out').textContent=document.getElementById('name').value\">Submit</button><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "alice" }
+  }
+}

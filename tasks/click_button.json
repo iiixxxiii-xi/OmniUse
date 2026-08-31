@@ -1,0 +1,10 @@
+{
+  "id": "click_button",
+  "instruction": "Click the 'Click me' button.",
+  "html": "<button id=btn onclick=\"document.getElementById('out').textContent='clicked'\">Click me</button><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "clicked" }
+  }
+}

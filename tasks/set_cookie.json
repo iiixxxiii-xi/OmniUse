@@ -1,0 +1,10 @@
+{
+  "id": "set_cookie",
+  "instruction": "Click the button to set the theme cookie.",
+  "html": "<button id=set onclick=\"document.cookie='theme=dark; path=/'\">Set theme</button>",
+  "evaluator": {
+    "func": "element_exists_metric",
+    "result": { "getter": "cookie_exists", "name": "theme" },
+    "expected": { "expected": true }
+  }
+}

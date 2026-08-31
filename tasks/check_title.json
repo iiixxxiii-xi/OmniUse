@@ -1,0 +1,10 @@
+{
+  "id": "check_title",
+  "instruction": "Confirm the page title is 'Home'.",
+  "html": "<html><head><title>Home</title></head><body><h1>Welcome</h1></body></html>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "page_title" },
+    "expected": { "expected": "Home" }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "match_in_list",
+  "instruction": "Set the status to one of the allowed values.",
+  "html": "<div id=status>active</div>",
+  "evaluator": {
+    "func": "match_in_list",
+    "result": { "getter": "element_text", "selector": "#status" },
+    "expected": { "expected": ["active", "idle", "paused"] }
+  }
+}

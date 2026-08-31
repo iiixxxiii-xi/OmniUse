@@ -1,0 +1,10 @@
+{
+  "id": "toggle_checkbox",
+  "instruction": "Check the 'I agree' checkbox, then click Confirm.",
+  "html": "<label><input type=checkbox id=agree> I agree</label><button id=go onclick=\"document.getElementById('out').textContent=document.getElementById('agree').checked?'yes':'no'\">Confirm</button><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "yes" }
+  }
+}

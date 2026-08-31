@@ -1,0 +1,10 @@
+{
+  "id": "regex_price",
+  "instruction": "Display a price as a dollar amount.",
+  "html": "<div id=price>$42</div>",
+  "evaluator": {
+    "func": "regex_match",
+    "result": { "getter": "element_text", "selector": "#price" },
+    "expected": { "pattern": "^\\$\\d+$" }
+  }
+}

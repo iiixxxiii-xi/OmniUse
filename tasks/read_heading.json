@@ -1,0 +1,17 @@
+{
+  "id": "read_heading",
+  "instruction": "Confirm the heading is present and reads 'Welcome'.",
+  "html": "<h1 id=title>Welcome</h1><div id=out></div>",
+  "evaluator": {
+    "func": ["element_exists_metric", "exact_match"],
+    "conj": "and",
+    "result": [
+      { "getter": "element_exists", "selector": "#title" },
+      { "getter": "element_text", "selector": "#title" }
+    ],
+    "expected": [
+      { "expected": true },
+      { "expected": "Welcome" }
+    ]
+  }
+}

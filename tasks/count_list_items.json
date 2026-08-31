@@ -1,0 +1,10 @@
+{
+  "id": "count_list_items",
+  "instruction": "Verify how many list items are on the page.",
+  "html": "<ul id=items><li>Apple</li><li>Banana</li><li>Cherry</li></ul>",
+  "evaluator": {
+    "func": "count_eq",
+    "result": { "getter": "element_count", "selector": "#items li" },
+    "expected": { "expected": 3 }
+  }
+}

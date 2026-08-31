@@ -1,0 +1,10 @@
+{
+  "id": "select_dropdown",
+  "instruction": "Select 'Green' from the color dropdown, then click Pick.",
+  "html": "<select id=color><option value=red>Red</option><option value=green>Green</option></select><button id=go onclick=\"document.getElementById('out').textContent=document.getElementById('color').value\">Pick</button><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "green" }
+  }
+}

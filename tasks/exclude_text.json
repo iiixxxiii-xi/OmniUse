@@ -1,0 +1,10 @@
+{
+  "id": "exclude_text",
+  "instruction": "Make sure the page reports success and does not mention an error.",
+  "html": "<div id=status>all good</div>",
+  "evaluator": {
+    "func": "contains",
+    "result": { "getter": "page_text" },
+    "expected": { "include": ["all good"], "exclude": ["error"] }
+  }
+}

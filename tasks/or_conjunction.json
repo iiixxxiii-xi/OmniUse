@@ -1,0 +1,17 @@
+{
+  "id": "or_conjunction",
+  "instruction": "Show either 'Success' or 'Complete' as the result.",
+  "html": "<div id=result>Success</div>",
+  "evaluator": {
+    "func": ["exact_match", "exact_match"],
+    "conj": "or",
+    "result": [
+      { "getter": "element_text", "selector": "#result" },
+      { "getter": "element_text", "selector": "#result" }
+    ],
+    "expected": [
+      { "expected": "Success" },
+      { "expected": "Complete" }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "fill_login_form",
+  "instruction": "Log in with username 'bob' and password 'secret'.",
+  "html": "<input id=user placeholder=Username><input id=pass type=password placeholder=Password><button id=go onclick=\"document.getElementById('out').textContent=document.getElementById('user').value+':'+document.getElementById('pass').value\">Login</button><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "bob:secret" }
+  }
+}

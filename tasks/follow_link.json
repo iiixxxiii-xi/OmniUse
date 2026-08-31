@@ -1,0 +1,10 @@
+{
+  "id": "follow_link",
+  "instruction": "Follow the 'Go next' link.",
+  "html": "<a id=link href='#' onclick=\"document.getElementById('out').textContent='navigated'; return false;\">Go next</a><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "navigated" }
+  }
+}

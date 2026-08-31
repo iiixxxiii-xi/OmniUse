@@ -1,0 +1,10 @@
+{
+  "id": "press_enter",
+  "instruction": "Type 'hello' into the search box and press Enter.",
+  "html": "<input id=q placeholder=Search onkeydown=\"if(event.key==='Enter')document.getElementById('out').textContent=document.getElementById('q').value\"><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "hello" }
+  }
+}
