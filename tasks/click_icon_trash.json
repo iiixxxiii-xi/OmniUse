@@ -1,0 +1,17 @@
+{
+  "id": "click_icon_trash",
+  "instruction": "Click the trash can icon.",
+  "difficulty": "easy",
+  "html": "<button onclick=\"document.getElementById('out').textContent='trash'\" style='padding:8px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='48' height='48' viewBox='0 0 24 24'><rect x='8' y='10' width='8' height='11' rx='1' fill='#95a5a6'/><rect x='6' y='7' width='12' height='2' rx='1' fill='#7f8c8d'/><rect x='10' y='5' width='4' height='2' rx='1' fill='#7f8c8d'/></svg></button><button onclick=\"document.getElementById('out').textContent='save'\" style='padding:8px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='48' height='48' viewBox='0 0 24 24'><rect x='5' y='4' width='14' height='16' rx='2' fill='#3498db'/><rect x='8' y='4' width='8' height='6' fill='#ecf0f1'/><rect x='8' y='13' width='8' height='7' fill='#ecf0f1'/></svg></button><button onclick=\"document.getElementById('out').textContent='star'\" style='padding:8px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='48' height='48' viewBox='0 0 24 24'><polygon points='12,2 15,9 23,9 17,14 19,22 12,17 5,22 7,14 1,9 9,9' fill='#f1c40f'/></svg></button><div id=out></div>",
+  "vision_required": true,
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "trash"
+    }
+  }
+}

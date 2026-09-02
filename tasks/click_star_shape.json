@@ -1,0 +1,17 @@
+{
+  "id": "click_star_shape",
+  "instruction": "Click the star shape.",
+  "difficulty": "easy",
+  "html": "<button onclick=\"document.getElementById('out').textContent='star'\" style='padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='64' height='64' viewBox='0 0 100 100'><polygon points='50,5 61,39 97,39 68,57 79,92 50,71 21,92 32,57 3,39 39,39' fill='#f1c40f'/></svg></button><button onclick=\"document.getElementById('out').textContent='circle'\" style='padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='64' height='64' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='#3498db'/></svg></button><button onclick=\"document.getElementById('out').textContent='triangle'\" style='padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='64' height='64' viewBox='0 0 100 100'><polygon points='50,8 92,88 8,88' fill='#e74c3c'/></svg></button><div id=out></div>",
+  "vision_required": true,
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "star"
+    }
+  }
+}

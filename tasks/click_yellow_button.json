@@ -1,0 +1,17 @@
+{
+  "id": "click_yellow_button",
+  "instruction": "Click the yellow button.",
+  "difficulty": "medium",
+  "html": "<button onclick=\"document.getElementById('out').textContent='yellow'\" style='background:#f1c40f;color:#000;padding:10px 18px;font-size:16px;border:none;border-radius:6px'>Confirm</button><button onclick=\"document.getElementById('out').textContent='orange'\" style='background:#e67e22;color:#fff;padding:10px 18px;font-size:16px;border:none;border-radius:6px'>Confirm</button><button onclick=\"document.getElementById('out').textContent='purple'\" style='background:#9b59b6;color:#fff;padding:10px 18px;font-size:16px;border:none;border-radius:6px'>Confirm</button><div id=out></div>",
+  "vision_required": true,
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "yellow"
+    }
+  }
+}

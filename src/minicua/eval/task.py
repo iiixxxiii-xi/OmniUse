@@ -31,6 +31,7 @@ class TaskDef(BaseModel):
     initial_url: str | None = None
     html: str | None = None  # inline HTML fixture (page.set_content)
     evaluator: EvaluatorSpec
+    vision_required: bool = False  # True when the answer lives only in the screenshot
     max_steps: int = Field(default=20, ge=1)
     threshold: float = Field(default=0.5, ge=0.0, le=1.0)
 

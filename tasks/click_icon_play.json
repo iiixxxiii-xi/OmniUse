@@ -1,0 +1,17 @@
+{
+  "id": "click_icon_play",
+  "instruction": "Click the play icon.",
+  "difficulty": "easy",
+  "html": "<button onclick=\"document.getElementById('out').textContent='play'\" style='padding:8px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='48' height='48' viewBox='0 0 24 24'><polygon points='8,5 20,12 8,19' fill='#2ecc71'/></svg></button><button onclick=\"document.getElementById('out').textContent='pause'\" style='padding:8px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='48' height='48' viewBox='0 0 24 24'><rect x='7' y='5' width='3' height='14' fill='#e67e22'/><rect x='14' y='5' width='3' height='14' fill='#e67e22'/></svg></button><button onclick=\"document.getElementById('out').textContent='stop'\" style='padding:8px;border:1px solid #ccc;background:#fff;border-radius:6px'><svg width='48' height='48' viewBox='0 0 24 24'><rect x='6' y='6' width='12' height='12' fill='#c0392b'/></svg></button><div id=out></div>",
+  "vision_required": true,
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "play"
+    }
+  }
+}

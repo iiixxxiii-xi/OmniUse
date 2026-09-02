@@ -1,7 +1,7 @@
 """The self-contained browser task set (``tasks/*.json``).
 
 These tests lock the task set in: it must load cleanly, have a sane size
-(15-50 tasks), carry unique ids, span all three difficulty tiers, reference only
+(15-65 tasks), carry unique ids, span all three difficulty tiers, reference only
 known getters/metrics, and serve every inline fixture on a real origin — proving
 the declarative fixtures + evaluators actually describe a reachable goal. Several
 end-to-end tests script a :class:`FakeModel` through representative tasks to show
@@ -29,7 +29,7 @@ def _load() -> list:
 
 def test_task_set_size():
     tasks = _load()
-    assert 15 <= len(tasks) <= 50
+    assert 15 <= len(tasks) <= 65
 
 
 def test_task_ids_unique():

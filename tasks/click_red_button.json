@@ -1,0 +1,17 @@
+{
+  "id": "click_red_button",
+  "instruction": "Click the red button.",
+  "difficulty": "easy",
+  "html": "<button onclick=\"document.getElementById('out').textContent='red'\" style='background:#e74c3c;color:#fff;padding:10px 18px;font-size:16px;border:none;border-radius:6px'>Select</button><button onclick=\"document.getElementById('out').textContent='blue'\" style='background:#3498db;color:#fff;padding:10px 18px;font-size:16px;border:none;border-radius:6px'>Select</button><div id=out></div>",
+  "vision_required": true,
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "red"
+    }
+  }
+}
