@@ -86,3 +86,23 @@ def test_aggregate_single_log_all_success():
     assert m["task_success"] == 1.0
     assert m["invalid_action_rate"] == 0.0
     assert m["latency"] == 5.0
+
+
+def test_aggregate_token_cost_from_model_call_with_usage():
+    # A model call event carrying token usage + its derived cost must aggregate
+    # into a non-zero ``token_cost`` (the metric that was reporting 0 for real runs).
+    log = EventLog()
+    log.append(StepEvent(step=1, ts=0.0))
+    log.append(
+        ModelCallEvent(
+            step=1,
+            ts=0.0,
+            input_tokens=1000,
+            output_tokens=500,
+            cost_usd=0.00049,
+        )
+    )
+    log.append(ActionEvent(step=1, ts=0.0, name="done", success=True))
+    log.append(StepEvent(step=1, ts=1.0))
+    m = aggregate([log], [1.0])
+    assert m["token_cost"] > 0.0

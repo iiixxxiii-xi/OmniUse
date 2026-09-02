@@ -311,6 +311,25 @@ def _get(obj: Any, key: str, default: Any = None) -> Any:
     return getattr(obj, key, default)
 
 
+def _explicit_cost(usage: Any) -> float:
+    """Read a provider-supplied cost from ``usage``, or ``0.0`` when absent.
+
+    The OpenAI-compatible ``usage`` object normally carries only token counts;
+    some gateways additionally return a monetary ``cost`` (a few spell it
+    ``cost_usd`` / ``total_cost``). When present, that figure is authoritative
+    and the adapter should not recompute it from the pricing table.
+    """
+    for key in ("cost", "cost_usd", "total_cost"):
+        value = _get(usage, key, None)
+        if value is None:
+            continue
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            continue
+    return 0.0
+
+
 def to_openai_messages(messages: Sequence[Message]) -> list[dict[str, Any]]:
     """Translate CUA :class:`Message` objects into the OpenAI chat-completion shape.
 
@@ -377,6 +396,7 @@ def parse_openai_choice(choice: Any, usage: Any | None = None) -> ModelOutput:
         usage_obj = ModelUsage(
             input_tokens=int(_get(usage, "prompt_tokens", 0) or 0),
             output_tokens=int(_get(usage, "completion_tokens", 0) or 0),
+            cost_usd=_explicit_cost(usage),
         )
 
     return ModelOutput(thought=thought, tool_calls=tool_calls, usage=usage_obj)
@@ -418,6 +438,58 @@ def classify_openai_error(exc: Exception) -> ModelError:
     if "connection" in name or any(t in msg for t in ("connection", "network", "refused", "reset")):
         return ModelServerError(f"connection failure: {exc}")
     return ModelError(f"OpenAI API call failed: {exc}")
+
+
+# --------------------------------------------------------------------------- #
+# Token cost pricing (USD per 1M tokens)
+# --------------------------------------------------------------------------- #
+
+#: Published list prices, USD per 1M tokens, as ``(input, output)``. ``input`` is
+#: the cache-miss rate (cached input is typically ~10x cheaper but providers don't
+#: report the cache split in the ``usage`` object, so cache-miss is the safe
+#: upper bound). Centralized so a provider price change is a one-line edit.
+#:
+#: * ``deepseek-chat`` / ``deepseek-reasoner`` — api.deepseek.com (Oct 2025 USD list).
+#: * ``qwen3-vl-*`` — Alibaba Cloud Model Studio / DashScope compatible-mode,
+#:   entry (≤32K input) tier.
+#: * ``gpt-4o`` / ``gpt-4o-mini`` — OpenAI standard list prices.
+PRICING_USD_PER_MILLION: dict[str, tuple[float, float]] = {
+    "deepseek-chat": (0.28, 0.42),
+    "deepseek-reasoner": (0.55, 2.19),
+    "qwen3-vl-flash": (0.05, 0.40),
+    "qwen3-vl-plus": (0.35, 0.35),
+    "gpt-4o": (2.50, 10.00),
+    "gpt-4o-mini": (0.15, 0.60),
+}
+
+
+def _match_pricing(model: str) -> tuple[float, float] | None:
+    """Return ``(input, output)`` USD-per-1M for ``model``.
+
+    Exact name first, then longest-prefix match, so ``qwen3-vl-flash`` and any
+    variant such as ``qwen3-vl-flash-32b`` both resolve to the same entry.
+    """
+    if model in PRICING_USD_PER_MILLION:
+        return PRICING_USD_PER_MILLION[model]
+    prefixes = [k for k in PRICING_USD_PER_MILLION if model.startswith(k)]
+    if not prefixes:
+        return None
+    return PRICING_USD_PER_MILLION[max(prefixes, key=len)]
+
+
+def compute_cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
+    """USD cost of a model call from its list price; ``0.0`` for an unpriced model.
+
+    ``input_tokens`` / ``output_tokens`` are the counts from the provider's
+    ``usage`` object. Models without a pricing entry cost nothing (unknown models
+    are tolerated rather than raising, so a misconfigured model name can't crash
+    an eval run).
+    """
+    prices = _match_pricing(model)
+    if prices is None:
+        return 0.0
+    input_usd, output_usd = prices
+    return (input_tokens * input_usd + output_tokens * output_usd) / 1_000_000.0
 
 
 class OpenAIModel:
@@ -484,4 +556,11 @@ class OpenAIModel:
         choices = _get(response, "choices", None) or []
         if not choices:
             raise ModelInvalidResponseError("OpenAI returned an empty choices list")
-        return parse_openai_choice(choices[0], _get(response, "usage", None))
+        output = parse_openai_choice(choices[0], _get(response, "usage", None))
+        # When the provider didn't return a monetary cost, derive it from the
+        # token counts via the pricing table (real DeepSeek / Qwen runs need this).
+        if output.usage is not None and output.usage.cost_usd == 0.0:
+            output.usage.cost_usd = compute_cost_usd(
+                self.model, output.usage.input_tokens, output.usage.output_tokens
+            )
+        return output

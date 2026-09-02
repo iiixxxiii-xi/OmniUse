@@ -24,6 +24,7 @@ from minicua.controller.llm import (
     TextBlock,
     ToolCall,
     classify_openai_error,
+    compute_cost_usd,
     parse_openai_choice,
     to_openai_messages,
 )
@@ -228,6 +229,71 @@ async def test_generate_omits_empty_tools():
     m = OpenAIModel(model="x", api_key="sk-test", client=client)
     await m.generate([Message(role="user", content="hi")], [])
     assert client.calls[0]["tools"] is None
+
+
+# --------------------------------------------------------------------------- #
+# Cost computation from token usage (pricing table)
+# --------------------------------------------------------------------------- #
+
+
+def test_compute_cost_usd_uses_pricing_table():
+    assert compute_cost_usd("deepseek-chat", 1_000_000, 0) == pytest.approx(0.28)
+    assert compute_cost_usd("deepseek-chat", 0, 1_000_000) == pytest.approx(0.42)
+    assert compute_cost_usd("qwen3-vl-flash", 0, 1_000_000) == pytest.approx(0.40)
+
+
+def test_compute_cost_usd_prefix_matches_variant_ids():
+    # A versioned/sized id still resolves to its base model's price.
+    assert compute_cost_usd("qwen3-vl-flash-32b", 1_000_000, 0) == pytest.approx(0.05)
+
+
+def test_compute_cost_usd_unknown_model_is_zero():
+    assert compute_cost_usd("no-such-model", 1_000_000, 1_000_000) == 0.0
+
+
+@pytest.mark.asyncio
+async def test_generate_computes_cost_for_deepseek():
+    client = RecordingClient(
+        handler=lambda kw: _response(usage={"prompt_tokens": 1000, "completion_tokens": 500})
+    )
+    m = OpenAIModel(model="deepseek-chat", api_key="sk-test", client=client, supports_vision=False)
+    out = await m.generate([Message(role="user", content="hi")], [])
+    assert out.usage is not None
+    assert out.usage.input_tokens == 1000
+    assert out.usage.output_tokens == 500
+    # 1000 * $0.28/M + 500 * $0.42/M
+    assert out.usage.cost_usd == pytest.approx((1000 * 0.28 + 500 * 0.42) / 1_000_000)
+
+
+@pytest.mark.asyncio
+async def test_generate_computes_cost_for_qwen3_vl():
+    client = RecordingClient(
+        handler=lambda kw: _response(usage={"prompt_tokens": 1_000_000, "completion_tokens": 1_000_000})
+    )
+    m = OpenAIModel(model="qwen3-vl-flash", api_key="sk-test", client=client, supports_vision=True)
+    out = await m.generate([Message(role="user", content="hi")], [])
+    # $0.05/M input + $0.40/M output
+    assert out.usage.cost_usd == pytest.approx(0.05 + 0.40)
+
+
+@pytest.mark.asyncio
+async def test_generate_uses_explicit_api_cost_when_present():
+    client = RecordingClient(
+        handler=lambda kw: _response(usage={"prompt_tokens": 100, "completion_tokens": 10, "cost": 0.1234})
+    )
+    m = OpenAIModel(model="deepseek-chat", api_key="sk-test", client=client, supports_vision=False)
+    out = await m.generate([Message(role="user", content="hi")], [])
+    assert out.usage.cost_usd == pytest.approx(0.1234)
+
+
+@pytest.mark.asyncio
+async def test_generate_unknown_model_cost_is_zero():
+    client = RecordingClient(
+        handler=lambda kw: _response(usage={"prompt_tokens": 100, "completion_tokens": 10})
+    )
+    m = OpenAIModel(model="some-unknown-model", api_key="sk-test", client=client)
+    out = await m.generate([Message(role="user", content="hi")], [])
+    assert out.usage.cost_usd == 0.0
 
 
 # --------------------------------------------------------------------------- #
