@@ -104,6 +104,30 @@ async def element_attribute(
         return None
 
 
+async def element_value(
+    session: BrowserSession,
+    *,
+    selector: str | None = None,
+    **extra: Any,
+) -> str | None:
+    """Current *value* (DOM property) of the first matching form control.
+
+    Unlike :func:`element_attribute` (which reads the HTML ``value`` attribute),
+    this reads the live property the user/agent set by typing or selecting — so it
+    correctly grades an input the agent filled in. ``None`` if absent/empty.
+    """
+    if not selector:
+        return None
+    try:
+        locator = session.page.locator(selector).first
+        if await locator.count() == 0:
+            return None
+        return await locator.input_value()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("element_value(%r) failed: %s", selector, exc)
+        return None
+
+
 async def element_count(session: BrowserSession, *, selector: str | None = None, **extra: Any) -> int:
     """Number of elements matching ``selector`` (``0`` on failure)."""
     if not selector:
@@ -161,6 +185,7 @@ GETTERS: dict[str, Getter] = {
     "element_exists": element_exists,
     "element_text": element_text,
     "element_attribute": element_attribute,
+    "element_value": element_value,
     "element_count": element_count,
     "cookie_exists": cookie_exists,
     "local_storage": local_storage,
