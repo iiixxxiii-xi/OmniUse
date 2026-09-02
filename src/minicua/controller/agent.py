@@ -62,6 +62,11 @@ logger = logging.getLogger("minicua.controller.agent")
 # re-perceive + relocalize before escalating.
 _STALE_ERROR_CODES = frozenset({ActionError.STALE_ELEMENT, ActionError.ELEMENT_NOT_FOUND})
 
+# After this many consecutive failed actions, inject a "replan" nudge so the
+# model changes strategy instead of burning the failure budget on the same wrong
+# action (mirrors Browser Use's ``planning_replan_on_stall``).
+_REPLAN_ON_STALL_THRESHOLD = 2
+
 # --------------------------------------------------------------------------- #
 # Result models
 # --------------------------------------------------------------------------- #
@@ -216,6 +221,7 @@ class Agent:
         use_vision: str = "dom_only",
         max_requeries: int = 2,
         max_actions_per_step: int = 25,
+        replan_on_stall: bool = True,
         registry: ActionRegistry | None = None,
         retry_policy: RetryPolicy | None = None,
         enable_recovery: bool = True,
@@ -236,6 +242,7 @@ class Agent:
         self.use_vision = use_vision
         self.max_requeries = max_requeries if recovery else 0
         self.max_actions_per_step = max_actions_per_step
+        self.replan_on_stall = replan_on_stall
         if registry is None:
             registry = get_desktop_registry() if self.mode == "desktop" else get_default_registry()
         self.registry = registry
@@ -612,6 +619,25 @@ class Agent:
                 self.budget.reset_failures()
             else:
                 self.budget.record_failure()
+                # Replan-on-stall: after a couple of consecutive failures, push
+                # the model to re-examine the page and change strategy instead of
+                # burning the remaining failure budget on the same wrong action.
+                if (
+                    self.recovery
+                    and self.replan_on_stall
+                    and self.budget.failures == _REPLAN_ON_STALL_THRESHOLD
+                ):
+                    self._messages.append(
+                        Message(
+                            role="user",
+                            content=(
+                                "REPLAN SUGGESTED: you've had several consecutive failed "
+                                "actions. The page may have changed or your approach may be "
+                                "wrong. Re-examine the current page state and try a different "
+                                "strategy rather than repeating the same action."
+                            ),
+                        )
+                    )
 
             # Page-change guard: abort the remaining multi-action queue when the
             # page moved under us (e.g. a navigate re-rendered the whole DOM).

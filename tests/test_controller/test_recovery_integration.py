@@ -213,6 +213,53 @@ async def test_agent_injects_loop_nudge(session):
     assert nudges
 
 
+@pytest.mark.asyncio
+async def test_agent_injects_replan_nudge_on_consecutive_failures(session):
+    # Two non-stale failures (typing into a non-editable button) should push a
+    # "REPLAN SUGGESTED" nudge so the model changes strategy instead of retrying.
+    await session.page.set_content("<button id=b>click me</button>")
+    model = FakeModel(
+        responses=[
+            {"name": "type", "params": {"index": 1, "text": "hi"}},  # not editable
+            {"name": "type", "params": {"index": 1, "text": "hi"}},  # fails again
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    agent = Agent(session=session, model=model, max_steps=10)
+    result = await agent.run(task="x")
+    assert result.done is True
+
+    nudges = [
+        m.content
+        for call in model.calls
+        for m in call[0]
+        if m.role == "user" and "REPLAN SUGGESTED" in m.content
+    ]
+    assert nudges
+
+
+@pytest.mark.asyncio
+async def test_minimal_mode_disables_replan_nudge(session):
+    await session.page.set_content("<button id=b>click me</button>")
+    model = FakeModel(
+        responses=[
+            {"name": "type", "params": {"index": 1, "text": "hi"}},
+            {"name": "type", "params": {"index": 1, "text": "hi"}},
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    agent = Agent(session=session, model=model, recovery=False, max_steps=10, max_failures=5)
+    result = await agent.run(task="x")
+
+    nudges = [
+        m.content
+        for call in model.calls
+        for m in call[0]
+        if m.role == "user" and "REPLAN SUGGESTED" in m.content
+    ]
+    assert not nudges  # replan-on-stall is gated by the recovery master switch
+
+
 # --------------------------------------------------------------------------- #
 # crash recovery
 # --------------------------------------------------------------------------- #
