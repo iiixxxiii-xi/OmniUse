@@ -1,0 +1,11 @@
+{
+  "id": "rerender_priority_sort",
+  "difficulty": "hard",
+  "instruction": "Process the queue in priority order: click High, then Medium, then Low. The queue re-sorts and re-renders after every click, so re-read the page before each click. Finish when 'Done: High, Medium, Low' appears.",
+  "html": "<div id=\"queue\"><button>Medium</button><button>High</button><button>Low</button></div><div id=\"log\"></div><script>var items=[{n:'High',p:1},{n:'Medium',p:2},{n:'Low',p:3}];var done=[];var q=document.getElementById('queue');function render(){q.innerHTML=items.slice().sort(function(a,b){return a.p-b.p;}).map(function(it){return '<button>'+it.n+'</button>';}).join('');}q.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var n=b.textContent;done.push(n);items=items.filter(function(it){return it.n!==n;});render();if(items.length===0){document.getElementById('log').textContent='Done: '+done.join(', ');}});render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#log" },
+    "expected": { "expected": "Done: High, Medium, Low" }
+  }
+}

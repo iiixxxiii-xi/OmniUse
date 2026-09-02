@@ -7,7 +7,7 @@ and reports the success-rate / invalid-action / recovery-success deltas.
 
 import pytest
 
-from minicua.controller.llm import FakeModel, ModelOutput
+from minicua.controller.llm import FakeModel, ModelOutput, ToolCall
 from minicua.eval.ablation import AblationResult, run_ablation
 from minicua.eval.runner import EvalResult, SuiteResult
 from minicua.eval.task import TaskDef
@@ -136,3 +136,91 @@ def test_ablation_invalid_action_delta():
     full = SuiteResult(results=[], metrics={"invalid_action_rate": 0.1})
     ablation = AblationResult(baseline=baseline, full=full)
     assert ablation.invalid_action_delta == pytest.approx(0.3)
+
+
+# --------------------------------------------------------------------------- #
+# re-observe + re-plan recovery rung
+# --------------------------------------------------------------------------- #
+
+
+def _text_of(message) -> str:
+    """Plain-text rendering of one message (handles str and content-block shapes)."""
+    if isinstance(message.content, str):
+        return message.content
+    return "".join(b.text for b in message.content if getattr(b, "type", None) == "text")
+
+
+def _last_user_text(messages) -> str:
+    for m in reversed(messages):
+        if m.role == "user":
+            return _text_of(m)
+    return ""
+
+
+class StaleRecoveryModel:
+    """A model that hallucinates a stale index on normal turns but corrects itself
+    when the recovery layer feeds back the re-plan hint (fresh DOM + error).
+
+    On a *normal* turn (the last user message is a fresh state observation) it
+    emits ``click <stale_index>`` up to ``max_stale`` times, then ``done``. When
+    the last user message is the re-plan hint, it emits the correct index instead.
+    This models a model that keeps using a cached index until it is re-observed
+    and re-planned — exactly what bare ReAct fails on and full recovery rescues.
+    """
+
+    supports_vision = False
+
+    def __init__(self, *, stale_index: int, correct_index: int, max_stale: int) -> None:
+        self.stale_index = stale_index
+        self.correct_index = correct_index
+        self.max_stale = max_stale
+        self._normal = 0
+        self.calls: list = []
+
+    async def generate(self, messages, tools):
+        self.calls.append(tuple(messages))
+        last = _last_user_text(messages)
+        if "Re-plan using the fresh page elements" in last:
+            return ModelOutput(tool_calls=[ToolCall(name="click", arguments={"index": self.correct_index})])
+        self._normal += 1
+        if self._normal <= self.max_stale:
+            return ModelOutput(tool_calls=[ToolCall(name="click", arguments={"index": self.stale_index})])
+        return ModelOutput(tool_calls=[ToolCall(name="done", arguments={"success": True})])
+
+
+def _replan_task() -> TaskDef:
+    return TaskDef(
+        id="replan_stale_index",
+        instruction="click the submit button",
+        html=(
+            "<button id=\"submit\" onclick=\"document.getElementById('out').textContent='ok'\">go</button>"
+            "<div id=\"out\"></div>"
+        ),
+        evaluator={
+            "func": "exact_match",
+            "result": {"getter": "element_text", "selector": "#out"},
+            "expected": {"expected": "ok"},
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_run_ablation_replan_recovery_distinguishes_baseline_from_full():
+    tasks = [_replan_task()]
+    result = await run_ablation(
+        tasks,
+        lambda: StaleRecoveryModel(stale_index=999, correct_index=1, max_stale=3),
+    )
+
+    # Bare ReAct keeps hallucinating index 999 and exhausts max_failures; full mode
+    # re-observes + re-plans each failure, clicks the correct element, and finishes.
+    assert result.baseline.success_rate == 0.0
+    assert result.full.success_rate == 1.0
+    assert result.success_rate_delta == 1.0
+    assert result.baseline.results[0].stop_reason == "max_failures"
+    assert result.full.results[0].stop_reason == "done"
+
+    # Recovery succeeded on every attempt (re-observe + re-plan rescues each one).
+    assert result.recovery_success_rate == 1.0
+    assert result.full.results[0].recoveries == 3
+    assert result.full.results[0].recovery_attempts == 3

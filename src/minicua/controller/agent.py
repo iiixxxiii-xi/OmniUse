@@ -387,6 +387,45 @@ class Agent:
         except Exception:  # noqa: BLE001
             logger.warning("failed to save recovery checkpoint", exc_info=True)
 
+    async def _reobserve_and_replan(
+        self, action: Action, failed: ActionResult
+    ) -> tuple[list[Any], Any] | None:
+        """Re-observe the page and ask the model to re-plan from the fresh DOM.
+
+        The last rung of the stale-element ladder: when relocalization cannot
+        re-ground the action's index (e.g. the index never existed — a hallucinated
+        index), re-perceive a fresh :class:`BrowserState`, feed it back to the model
+        with a hint that its last action failed, and let the model emit a new plan
+        grounded on the fresh DOM.
+
+        Returns ``(new_actions, fresh_state)`` when the model produced a fresh plan,
+        or ``None`` when it could not (malformed output / no tool calls), in which
+        case the caller degrades to the ordinary failure path.
+        """
+        fresh_state = await self._perceive()
+        self._messages.append(self._build_state_message(fresh_state))
+        self._messages.append(
+            Message(
+                role="user",
+                content=(
+                    f"Your last action {action.name!r} failed: "
+                    f"{failed.error or 'unknown error'} (code={failed.error_code}). "
+                    "The page may have changed. Re-plan using the fresh page elements above."
+                ),
+            )
+        )
+        try:
+            output, new_actions = await self._think()
+        except ModelInvalidResponseError:
+            logger.warning("re-plan produced no valid tool calls; giving up recovery")
+            return None
+        self._record_usage(output)
+        if output.thought:
+            self._messages.append(Message(role="assistant", content=output.thought))
+        if not new_actions:
+            return None
+        return new_actions, fresh_state
+
     async def run(self, task: str | None = None) -> AgentResult:
         """Run the loop until ``done``, a budget limit, or a classified model failure."""
         if task is not None:
@@ -511,6 +550,37 @@ class Agent:
                     recovered_this_step += 1
                     action, state = recovered
                     result = await self._execute(action, state)
+                else:
+                    # Relocalization failed (e.g. a hallucinated index with no old
+                    # element to re-ground). Escalate: re-observe the page and let
+                    # the model re-plan against the fresh DOM.
+                    replanned = await self._reobserve_and_replan(action, result)
+                    if replanned is not None:
+                        new_actions, new_state = replanned
+                        logger.info(
+                            "re-planned %d action(s) after unrelocalizable stale index",
+                            len(new_actions),
+                        )
+                        recovered_this_step += 1
+                        # Record the failed action for observability, then execute
+                        # the fresh plan. A re-planned action that itself fails is
+                        # left to the next step (no recursive re-plan).
+                        results.append(result)
+                        for new_action in new_actions:
+                            new_result = await self._execute(new_action, new_state)
+                            results.append(new_result)
+                            if new_action.name == "done":
+                                is_done = True
+                                success = new_result.success
+                                submission = new_result.extracted
+                                break
+                            if new_result.success:
+                                self.budget.reset_failures()
+                            else:
+                                self.budget.record_failure()
+                        # Abandon any remaining original actions: they were grounded
+                        # on the pre-replan DOM, which has since changed.
+                        break
 
             results.append(result)
             if action.name == "done":

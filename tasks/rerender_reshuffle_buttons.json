@@ -1,0 +1,11 @@
+{
+  "id": "rerender_reshuffle_buttons",
+  "difficulty": "hard",
+  "instruction": "Click the buttons in order: Alpha, then Beta, then Gamma. The list re-renders after every click and the remaining buttons reshuffle, so re-read the page before each click. Finish when 'Complete: Alpha, Beta, Gamma' appears.",
+  "html": "<div id=\"list\"><button>Alpha</button><button>Beta</button><button>Gamma</button></div><div id=\"log\"></div><script>var order=['Alpha','Beta','Gamma'];var picked=[];var list=document.getElementById('list');function render(){list.innerHTML=order.map(function(n){return '<button>'+n+'</button>';}).join('');}list.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var n=b.textContent;picked.push(n);order=order.filter(function(x){return x!==n;});render();if(picked.length===3){document.getElementById('log').textContent='Complete: '+picked.join(', ');}});</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#log" },
+    "expected": { "expected": "Complete: Alpha, Beta, Gamma" }
+  }
+}

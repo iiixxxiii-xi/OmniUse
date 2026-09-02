@@ -116,3 +116,22 @@ async def test_solve_validate_email_long_horizon_end_to_end(session):
     result = await run_task(task, model, session=session)
     assert result.success is True
     assert result.score == 1.0
+
+
+@pytest.mark.asyncio
+async def test_solve_rerender_reshuffle_end_to_end(session):
+    # The re-render task shrinks the list after every click, so the "next" button
+    # is always index 1. A model that re-reads the fresh DOM each step (rather
+    # than caching a stale index) solves it — the whole point of re-observe.
+    task = next(t for t in _load() if t.id == "rerender_reshuffle_buttons")
+    model = FakeModel(
+        responses=[
+            {"name": "click", "params": {"index": 1}},  # Alpha
+            {"name": "click", "params": {"index": 1}},  # Beta  (now index 1)
+            {"name": "click", "params": {"index": 1}},  # Gamma (now index 1)
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    result = await run_task(task, model, session=session)
+    assert result.success is True
+    assert result.score == 1.0

@@ -137,6 +137,31 @@ async def test_agent_attempts_stale_recovery_on_stale_failure(session, monkeypat
     assert calls == ["click"]  # recovery was wired in for the stale failure
 
 
+@pytest.mark.asyncio
+async def test_agent_reobserves_and_replans_after_hallucinated_index(session):
+    # A single "Submit" button (index 1). The model first hallucinates index 999,
+    # which has no old element to relocalize (it never existed in the DOM).
+    # Recovery must therefore escalate to re-observe + re-plan: the model is fed
+    # the fresh DOM and emits the correct index 1, which then succeeds.
+    await session.page.set_content('<button id="submit" aria-label="Submit">go</button>')
+    model = FakeModel(
+        responses=[
+            {"name": "click", "params": {"index": 999}},  # hallucinated index
+            {"name": "click", "params": {"index": 1}},    # re-planned on fresh DOM
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    agent = Agent(session=session, model=model, max_steps=10, max_failures=5)
+    result = await agent.run(task="click submit")
+
+    assert result.done is True
+    assert result.recovery_attempts == 1
+    assert result.recoveries == 1  # one successful re-observe + re-plan
+    # The hallucinated click failed, then the re-planned click succeeded.
+    assert result.history[0].results[0].success is False
+    assert result.history[0].results[1].success is True
+
+
 # --------------------------------------------------------------------------- #
 # page-change guard (multi-action abort)
 # --------------------------------------------------------------------------- #

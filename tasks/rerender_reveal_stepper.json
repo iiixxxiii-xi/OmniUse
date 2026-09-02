@@ -1,0 +1,11 @@
+{
+  "id": "rerender_reveal_stepper",
+  "difficulty": "hard",
+  "instruction": "Advance through the steps: click 'Next', then 'Accept 1', then 'Accept 2', then 'Finish'. The page re-renders after every click and the buttons shift position, so re-read the page before each click. Finish when 'Complete' appears.",
+  "html": "<div id=\"steps\"></div><div id=\"log\"></div><script>var step=0;var steps=document.getElementById('steps');var log=document.getElementById('log');function render(){var s='';if(step===1)s+='<button>Accept 1</button>';if(step===2)s+='<button>Accept 2</button>';s+='<button>'+(step===3?'Finish':'Next')+'</button>';steps.innerHTML=s;}steps.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var t=b.textContent.trim();if(t==='Accept 1'||t==='Accept 2'){step++;render();}else if(t==='Finish'){log.textContent='Complete';}else{step++;render();}});render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#log" },
+    "expected": { "expected": "Complete" }
+  }
+}
