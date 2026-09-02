@@ -234,7 +234,7 @@ class Agent:
         self.environment = environment
         self.task = task
         self.use_vision = use_vision
-        self.max_requeries = max_requeries
+        self.max_requeries = max_requeries if recovery else 0
         self.max_actions_per_step = max_actions_per_step
         if registry is None:
             registry = get_desktop_registry() if self.mode == "desktop" else get_default_registry()
@@ -243,8 +243,9 @@ class Agent:
 
         # ``recovery`` is the master switch: False strips the agent down to a bare
         # ReAct loop (no stale relocalization, page-change guard, loop detection,
-        # or crash recovery). The finer-grained flags stay available for partial
-        # control, but ``recovery=False`` folds them all off.
+        # crash recovery, or malformed-output requery). The finer-grained flags
+        # stay available for partial control, but ``recovery=False`` folds them
+        # all off.
         self.recovery = recovery
         self.enable_recovery = enable_recovery and recovery
         self._checkpoint_dir = Path(checkpoint_dir) if checkpoint_dir is not None else None

@@ -7,7 +7,7 @@ and reports the success-rate / invalid-action / recovery-success deltas.
 
 import pytest
 
-from minicua.controller.llm import FakeModel
+from minicua.controller.llm import FakeModel, ModelOutput
 from minicua.eval.ablation import AblationResult, run_ablation
 from minicua.eval.runner import EvalResult, SuiteResult
 from minicua.eval.task import TaskDef
@@ -62,6 +62,42 @@ async def test_run_ablation_produces_baseline_and_full():
 
     # No stale/crash recovery events in this task, so recovery success is 0.
     assert result.recovery_success_rate == 0.0
+
+
+def _requery_task() -> TaskDef:
+    return TaskDef(
+        id="requery",
+        instruction="navigate to the target page",
+        html="<button id=start>start</button>",
+        evaluator={
+            "func": "contains",
+            "result": {"getter": "page_text"},
+            "expected": {"expected": "ok"},
+        },
+    )
+
+
+# The model's first response is malformed (no tool calls). Full mode requeries and
+# then navigates to the target page; baseline fails outright before reaching it.
+_REQUERY_SCRIPT = [
+    ModelOutput(),  # malformed -> requery (full) / fail (baseline)
+    {"name": "navigate", "params": {"url": "data:text/html,<div>ok</div>"}},
+    {"name": "done", "params": {"success": True}},
+]
+
+
+@pytest.mark.asyncio
+async def test_run_ablation_requery_distinguishes_baseline_from_full():
+    tasks = [_requery_task()]
+    result = await run_ablation(tasks, lambda: FakeModel(responses=list(_REQUERY_SCRIPT)))
+
+    # Baseline (bare ReAct) fails on the malformed first response and never reaches
+    # the page that would satisfy the evaluator; full mode requeries and succeeds.
+    assert result.baseline.success_rate == 0.0
+    assert result.full.success_rate == 1.0
+    assert result.success_rate_delta == 1.0
+    assert result.baseline.results[0].stop_reason == "invalid_response"
+    assert result.full.results[0].stop_reason == "done"
 
 
 def test_ablation_recovery_success_rate_from_attempts():

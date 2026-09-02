@@ -8,7 +8,7 @@ failed action fails outright; the controller never re-perceives and re-plans.
 import pytest
 
 from minicua.controller.agent import Agent, StopReason
-from minicua.controller.llm import FakeModel
+from minicua.controller.llm import FakeModel, ModelOutput
 from minicua.perception.extract import extract_state
 
 
@@ -122,3 +122,39 @@ async def test_minimal_mode_disables_crash_recovery(session, tmp_path):
     result = await agent.run(task="book a flight")
     assert result.done is False
     assert result.stop_reason == StopReason.ERROR  # crash was not recovered
+
+
+@pytest.mark.asyncio
+async def test_minimal_mode_disables_requery(session):
+    # Bare ReAct mode: a malformed (empty tool_calls) response is NOT requeried.
+    # The model gets one shot; a format error fails the run outright.
+    model = FakeModel(
+        responses=[
+            ModelOutput(),  # no tool calls -> malformed
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    agent = Agent(session=session, model=model, recovery=False)
+    result = await agent.run(task="x")
+
+    assert result.done is False
+    assert result.stop_reason == StopReason.INVALID_RESPONSE
+    assert len(model.calls) == 1  # the second (valid) response was never requeried
+
+
+@pytest.mark.asyncio
+async def test_full_mode_requeries_on_empty_tool_calls(session):
+    # Full recovery mode keeps the requery: empty tool_calls -> error fed back ->
+    # model asked again -> the second response succeeds.
+    model = FakeModel(
+        responses=[
+            ModelOutput(thought="let me reconsider..."),
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    agent = Agent(session=session, model=model)  # recovery=True by default
+    result = await agent.run(task="x")
+
+    assert result.done is True
+    assert result.success is True
+    assert len(model.calls) == 2  # one requery happened
