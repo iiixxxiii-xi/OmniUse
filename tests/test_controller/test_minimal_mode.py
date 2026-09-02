@@ -16,7 +16,7 @@ from minicua.perception.extract import extract_state
 async def test_minimal_mode_stale_action_fails_without_relocalizing(session, monkeypatch):
     calls: list[str] = []
 
-    async def fake_recover(action, old_state, page):
+    async def fake_recover(action, old_state, page, previous_state=None):
         calls.append(action.name)
         return None
 
@@ -43,7 +43,7 @@ async def test_full_mode_stale_action_relocalizes(session, monkeypatch):
     await session.page.set_content('<button id="a" aria-label="Save">save</button>')
     calls: list[str] = []
 
-    async def fake_recover(action, old_state, page):
+    async def fake_recover(action, old_state, page, previous_state=None):
         calls.append(action.name)
         relocalized = action.model_copy(
             update={"params": action.params.model_copy(update={"index": 1})}

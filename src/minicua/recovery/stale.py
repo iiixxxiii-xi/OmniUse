@@ -101,8 +101,16 @@ async def recover_stale(
     action: Action,
     old_state: BrowserState,
     page: Page,
+    previous_state: BrowserState | None = None,
 ) -> tuple[Action, BrowserState] | None:
     """Re-perceive the page and relocalize ``action``'s stale element.
+
+    The "old element" is the DOM element the model meant when it emitted the
+    index. It is usually found in ``old_state`` (the perception the model saw
+    this step), but a model may also reference an index from an earlier
+    perception (e.g. the page re-rendered between steps). ``previous_state`` is
+    that earlier perception, consulted as a fallback so recovery can still
+    relocalize instead of giving up with "no old element".
 
     Returns ``(relocalized_action, fresh_state)`` so the caller can re-execute the
     action against the fresh selector map, or ``None`` when the element is truly
@@ -112,6 +120,8 @@ async def recover_stale(
     if old_index is None:
         return None
     old_element = old_state.selector_map.get(old_index)
+    if old_element is None and previous_state is not None:
+        old_element = previous_state.selector_map.get(old_index)
     if old_element is None:
         logger.warning("stale index %s has no old element to relocalize", old_index)
         return None

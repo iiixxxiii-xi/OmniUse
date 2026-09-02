@@ -58,10 +58,68 @@ async def test_recover_stale_returns_none_when_element_gone(session):
 
 
 @pytest.mark.asyncio
+async def test_agent_relocalizes_stale_index_using_previous_state(session):
+    # Three buttons; "Save" is the third. Clicking it collapses the page so that
+    # "Save" becomes the only (first) element. The model then emits the stale
+    # index 3 from its *previous* perception; recovery must relocalize it using
+    # the previous step's element (by accessible name) rather than giving up.
+    await session.page.set_content(
+        '<button id="x">x</button>'
+        '<button id="y">y</button>'
+        '<button id="save" aria-label="Save" onclick="collapse()">save</button>'
+        '<script>'
+        'function collapse(){'
+        '  document.getElementById("x").remove();'
+        '  document.getElementById("y").remove();'
+        '  document.getElementById("save").id = "save2";'
+        '}'
+        '</script>'
+    )
+
+    model = FakeModel(
+        responses=[
+            {"name": "click", "params": {"index": 3}},  # step 1: click Save -> collapses page
+            {"name": "click", "params": {"index": 3}},  # step 2: stale index 3 -> relocalize
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    agent = Agent(session=session, model=model, max_steps=10, max_failures=5)
+    result = await agent.run(task="click save")
+
+    assert result.done is True
+    assert result.recovery_attempts == 1
+    assert result.recoveries == 1  # recovery succeeded via the previous state's element
+    assert result.history[1].results[0].success is True  # re-executed click succeeded
+
+
+@pytest.mark.asyncio
+async def test_recover_stale_falls_back_to_previous_state(session):
+    # The model references index 3, which exists in the previous perception but
+    # no longer in the current one (the page collapsed to a single element).
+    await session.page.set_content(
+        '<button id="x">x</button>'
+        '<button id="y">y</button>'
+        '<button id="save" aria-label="Save">save</button>'
+    )
+    previous_state = await extract_state(session.page)
+    assert previous_state.selector_map[3].ax_name == "Save"
+
+    await session.page.set_content('<button id="save2" aria-label="Save">save</button>')
+    current_state = await extract_state(session.page)
+    assert 3 not in current_state.selector_map
+
+    action = Action(name="click", params=ClickParams(index=3))
+    recovered = await recover_stale(action, current_state, session.page, previous_state=previous_state)
+    assert recovered is not None
+    new_action, _ = recovered
+    assert new_action.params.index == 1  # relocalized via the previous state's element
+
+
+@pytest.mark.asyncio
 async def test_agent_attempts_stale_recovery_on_stale_failure(session, monkeypatch):
     calls: list[str] = []
 
-    async def fake_recover(action, old_state, page):
+    async def fake_recover(action, old_state, page, previous_state=None):
         calls.append(action.name)
         return None  # simulate: could not relocalize
 

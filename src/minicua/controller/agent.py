@@ -257,6 +257,10 @@ class Agent:
         self.recoveries = 0
         self.recovery_attempts = 0
         self.page_changes = 0
+        # The last perception the model saw, kept so stale recovery can fall back
+        # to a *previous* step's element when the model references an index that
+        # no longer exists in the current selector map.
+        self._last_seen_state: BrowserState | None = None
 
         self._budget_config = dict(
             max_steps=max_steps,
@@ -396,6 +400,7 @@ class Agent:
         self.recoveries = 0
         self.recovery_attempts = 0
         self.page_changes = 0
+        self._last_seen_state = None
         await self._save_checkpoint()
 
         try:
@@ -459,6 +464,7 @@ class Agent:
 
         # perceive
         state = await self._perceive()
+        perceived_state = state
         self._messages.append(self._build_state_message(state))
 
         # think (with transient retry + requery on malformed output)
@@ -496,7 +502,9 @@ class Agent:
             ):
                 self.recovery_attempts += 1
                 page = self._require_page()
-                recovered = await recover_stale(action, state, page)
+                recovered = await recover_stale(
+                    action, state, page, previous_state=self._last_seen_state
+                )
                 if recovered is not None:
                     logger.info("relocalized stale action %s; retrying with fresh index", action.name)
                     recovered_this_step += 1
@@ -559,6 +567,7 @@ class Agent:
             )
         )
         self.recoveries += recovered_this_step
+        self._last_seen_state = perceived_state
         await self._save_checkpoint()
 
         return StepResult(
