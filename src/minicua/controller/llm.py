@@ -456,6 +456,8 @@ def classify_openai_error(exc: Exception) -> ModelError:
 PRICING_USD_PER_MILLION: dict[str, tuple[float, float]] = {
     "deepseek-chat": (0.28, 0.42),
     "deepseek-reasoner": (0.55, 2.19),
+    "deepseek-v4-flash": (0.28, 0.42),
+    "deepseek-v4-pro": (1.10, 1.68),
     "qwen3-vl-flash": (0.05, 0.40),
     "qwen3-vl-plus": (0.35, 0.35),
     "gpt-4o": (2.50, 10.00),
