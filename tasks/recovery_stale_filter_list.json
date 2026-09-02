@@ -1,0 +1,11 @@
+{
+  "id": "recovery_stale_filter_list",
+  "difficulty": "hard",
+  "instruction": "Click the 'Filter' button to remove all list items except 'Save', then click the remaining 'Save' button. Confirm 'Clicked: Save' appears.",
+  "html": "<button id=\"filter\">Filter</button><div id=\"list\"><button>Alpha</button><button aria-label=\"Save\">Save</button><button>Beta</button></div><div id=\"out\"></div><script>document.getElementById('filter').addEventListener('click',function(){document.getElementById('list').innerHTML='<button aria-label=\"Save\">Save</button>';});document.getElementById('list').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;document.getElementById('out').textContent='Clicked: '+b.textContent;});</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Clicked: Save" }
+  }
+}

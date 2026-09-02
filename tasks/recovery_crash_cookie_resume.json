@@ -1,0 +1,11 @@
+{
+  "id": "recovery_crash_cookie_resume",
+  "difficulty": "medium",
+  "instruction": "Log in by clicking the 'Login' button (this sets the session cookie).",
+  "html": "<button id=\"login\" onclick=\"document.cookie='logged_in=true; path=/'\">Login</button><div id=\"out\"></div>",
+  "evaluator": {
+    "func": "element_exists_metric",
+    "result": { "getter": "cookie_exists", "name": "logged_in" },
+    "expected": { "expected": true }
+  }
+}

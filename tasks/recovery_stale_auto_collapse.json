@@ -1,0 +1,11 @@
+{
+  "id": "recovery_stale_auto_collapse",
+  "difficulty": "hard",
+  "instruction": "Wait for the list to settle (two items disappear on their own), then click the remaining 'Save' button. Confirm 'Clicked: Save' appears.",
+  "html": "<div id=\"list\"><button>Alpha</button><button>Beta</button><button aria-label=\"Save\" onclick=\"document.getElementById('out').textContent='Clicked: Save'\">Save</button></div><div id=\"out\"></div><script>setTimeout(function(){document.getElementById('list').innerHTML=\"<button aria-label='Save' onclick=\\\"document.getElementById('out').textContent='Clicked: Save'\\\">Save</button>\";},800);</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Clicked: Save" }
+  }
+}

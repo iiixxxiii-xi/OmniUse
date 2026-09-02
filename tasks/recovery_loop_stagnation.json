@@ -1,0 +1,11 @@
+{
+  "id": "recovery_loop_stagnation",
+  "difficulty": "hard",
+  "instruction": "Submit the form by clicking the 'Submit' button. Confirm 'Done' appears.",
+  "html": "<button onclick=\"\">Refresh</button><button id=\"submit\" onclick=\"document.getElementById('out').textContent='Done'\">Submit</button><div id=\"out\"></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Done" }
+  }
+}

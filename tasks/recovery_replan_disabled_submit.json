@@ -1,0 +1,11 @@
+{
+  "id": "recovery_replan_disabled_submit",
+  "difficulty": "hard",
+  "instruction": "Check the 'I agree' checkbox to enable the 'Submit' button, then click 'Submit'. Confirm 'Submitted' appears.",
+  "html": "<input type=\"checkbox\" id=\"agree\" onchange=\"document.getElementById('submit').disabled=!this.checked\"><label for=\"agree\">I agree</label><button id=\"submit\" disabled onclick=\"document.getElementById('out').textContent='Submitted'\">Submit</button><div id=\"out\"></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Submitted" }
+  }
+}

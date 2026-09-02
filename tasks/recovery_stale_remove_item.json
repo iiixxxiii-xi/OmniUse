@@ -1,0 +1,11 @@
+{
+  "id": "recovery_stale_remove_item",
+  "difficulty": "hard",
+  "instruction": "Click 'Remove first' to delete the first list item, then click the 'Confirm' button. Confirm 'Confirmed' appears.",
+  "html": "<button id=\"remove\" onclick=\"document.getElementById('item1').remove()\">Remove first</button><div id=\"list\"><button id=\"item1\">Item 1</button><button id=\"confirm\" onclick=\"document.getElementById('out').textContent='Confirmed'\">Confirm</button></div><div id=\"out\"></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Confirmed" }
+  }
+}

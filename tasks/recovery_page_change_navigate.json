@@ -1,0 +1,11 @@
+{
+  "id": "recovery_page_change_navigate",
+  "difficulty": "hard",
+  "instruction": "Go to the 'Details' view, then click the 'Submit' button there. Confirm 'Submitted' appears.",
+  "html": "<nav><a href=\"#home\" onclick=\"location.hash='home';return false\">Home</a><a href=\"#details\" onclick=\"location.hash='details';return false\">Details</a></nav><div id=\"view\"></div><div id=\"out\"></div><script>function render(){var h=location.hash.replace('#','')||'home';var v=document.getElementById('view');if(h==='details'){v.innerHTML=\"<button id='submit' onclick=\\\"document.getElementById('out').textContent='Submitted'\\\">Submit</button>\";}else{v.textContent='Home view';}}window.addEventListener('hashchange',render);render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Submitted" }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "recovery_page_change_rerender",
+  "difficulty": "hard",
+  "instruction": "Click 'Load' to reveal the 'Confirm' button, then click 'Confirm'. Confirm 'Confirmed' appears.",
+  "html": "<button id=\"load\" onclick=\"load()\">Load</button><div id=\"content\"><p>Initial</p></div><div id=\"out\"></div><script>function load(){document.getElementById('content').innerHTML=\"<button id='confirm' onclick=\\\"document.getElementById('out').textContent='Confirmed'\\\">Confirm</button><p>Loaded</p>\";}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Confirmed" }
+  }
+}
