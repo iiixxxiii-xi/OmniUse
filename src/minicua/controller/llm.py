@@ -74,6 +74,7 @@ class Message(BaseModel):
 
     role: MessageRole
     content: str | list[ContentBlock] = ""
+    reasoning_content: str | None = None
 
 
 class ToolCall(BaseModel):
@@ -104,6 +105,7 @@ class ModelOutput(BaseModel):
     """
 
     thought: str | None = None
+    reasoning_content: str | None = None
     tool_calls: list[ToolCall] = Field(default_factory=list)
     usage: ModelUsage | None = None
 
@@ -355,7 +357,10 @@ def to_openai_messages(messages: Sequence[Message]) -> list[dict[str, Any]]:
                         }
                     )
             content = parts
-        converted.append({"role": m.role, "content": content})
+        entry: dict[str, Any] = {"role": m.role, "content": content}
+        if m.role == "assistant" and m.reasoning_content:
+            entry["reasoning_content"] = m.reasoning_content
+        converted.append(entry)
     return converted
 
 
@@ -391,6 +396,24 @@ def parse_openai_choice(choice: Any, usage: Any | None = None) -> ModelOutput:
             arguments = {}
         tool_calls.append(ToolCall(name=name, arguments=arguments))
 
+    # Reasoning models (DeepSeek V4, Qwen3) spend output tokens on a
+    # chain-of-thought before emitting tool calls. If the provider cut the
+    # response off at ``max_tokens``, there will be no tool calls — surface a
+    # specific error instead of the misleading "no tool calls" so the cause is
+    # obvious instead of looking like a model refusal.
+    finish_reason = _get(choice, "finish_reason", "") or ""
+    if finish_reason == "length" and not tool_calls:
+        raise ModelInvalidResponseError(
+            "model output truncated (finish_reason='length') before emitting "
+            "tool calls; max_tokens is too low for this reasoning model"
+        )
+
+    # Reasoning models (DeepSeek V4) put their chain-of-thought in a separate
+    # ``reasoning_content`` field and leave ``content`` empty. Preserve it so it
+    # can be echoed back on the next turn — stripping it breaks multi-turn
+    # reasoning (the model starts returning empty responses).
+    reasoning_content = _get(message, "reasoning_content", None) or None
+
     usage_obj: ModelUsage | None = None
     if usage is not None:
         usage_obj = ModelUsage(
@@ -399,7 +422,12 @@ def parse_openai_choice(choice: Any, usage: Any | None = None) -> ModelOutput:
             cost_usd=_explicit_cost(usage),
         )
 
-    return ModelOutput(thought=thought, tool_calls=tool_calls, usage=usage_obj)
+    return ModelOutput(
+        thought=thought,
+        reasoning_content=reasoning_content,
+        tool_calls=tool_calls,
+        usage=usage_obj,
+    )
 
 
 def classify_openai_error(exc: Exception) -> ModelError:
@@ -513,6 +541,8 @@ class OpenAIModel:
         max_tokens: int = 4096,
         timeout_seconds: float = 120.0,
         client: Any | None = None,
+        extra_body: dict[str, Any] | None = None,
+        tool_choice: str | None = None,
     ) -> None:
         self.model = model
         self.api_key = api_key
@@ -521,6 +551,8 @@ class OpenAIModel:
         self.max_tokens = max_tokens
         self.timeout_seconds = timeout_seconds
         self._client = client
+        self.extra_body = extra_body
+        self.tool_choice = tool_choice
 
     def _get_client(self) -> Any:
         if self._client is None:
@@ -549,6 +581,8 @@ class OpenAIModel:
                 messages=to_openai_messages(messages),
                 tools=list(tools) if tools else None,
                 max_tokens=self.max_tokens,
+                extra_body=self.extra_body,
+                tool_choice=self.tool_choice,
             )
         except ModelError:
             raise

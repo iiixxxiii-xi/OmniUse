@@ -69,6 +69,17 @@ def resolve_model(model_id: str) -> ChatModel:
             base_url=os.environ.get("DEEPSEEK_BASE_URL", DEEPSEEK_BASE_URL),
             api_key=api_key,
             supports_vision=False,
+            # DeepSeek V4 models are reasoning models: their chain-of-thought
+            # tokens share the same output budget as tool calls. A low ceiling
+            # truncates the response before the model emits any tool call
+            # ("no tool calls"), so give the reasoning head room to breathe.
+            max_tokens=8192,
+            # Disable the reasoning/thinking head for V4 models: with thinking
+            # on, the model narrates its plan into ``content`` instead of
+            # actually emitting tool calls on long multi-step tasks. Combine
+            # with a forced tool call so it can never "narrate instead of act".
+            extra_body={"thinking": {"type": "disabled"}} if "v4" in name else None,
+            tool_choice="required" if "v4" in name else None,
         )
 
     if model_id.startswith(("dashscope/", "qwen/")):

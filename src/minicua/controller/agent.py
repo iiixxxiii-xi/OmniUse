@@ -215,7 +215,7 @@ class Agent:
         timeout_seconds: float | None = None,
         use_vision: str = "dom_only",
         max_requeries: int = 2,
-        max_actions_per_step: int = 10,
+        max_actions_per_step: int = 25,
         registry: ActionRegistry | None = None,
         retry_policy: RetryPolicy | None = None,
         enable_recovery: bool = True,
@@ -420,8 +420,14 @@ class Agent:
             logger.warning("re-plan produced no valid tool calls; giving up recovery")
             return None
         self._record_usage(output)
-        if output.thought:
-            self._messages.append(Message(role="assistant", content=output.thought))
+        if output.thought or output.reasoning_content or output.tool_calls:
+            self._messages.append(
+                Message(
+                    role="assistant",
+                    content=output.thought or "",
+                    reasoning_content=output.reasoning_content,
+                )
+            )
         if not new_actions:
             return None
         return new_actions, fresh_state
@@ -510,8 +516,14 @@ class Agent:
         # think (with transient retry + requery on malformed output)
         output, actions = await self._think()
         self._record_usage(output)
-        if output.thought:
-            self._messages.append(Message(role="assistant", content=output.thought))
+        if output.thought or output.reasoning_content or output.tool_calls:
+            self._messages.append(
+                Message(
+                    role="assistant",
+                    content=output.thought or "",
+                    reasoning_content=output.reasoning_content,
+                )
+            )
 
         # act (with stale-element recovery + page-change guard; browser only)
         multi_action = len(actions) > 1
