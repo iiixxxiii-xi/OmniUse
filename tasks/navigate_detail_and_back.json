@@ -1,0 +1,32 @@
+{
+  "id": "navigate_detail_and_back",
+  "difficulty": "hard",
+  "instruction": "Navigate to the 'Details' page (which records that it was visited), then return to the Home view and confirm the list view is showing.",
+  "html": "<nav><a href=\"#home\" onclick=\"location.hash='home'; return false;\">Home</a><a href=\"#details\" onclick=\"location.hash='details'; return false;\">Details</a></nav><div id=\"view\"></div><script>function render(){var h = location.hash.replace(\"#\", \"\") || \"home\";var v = document.getElementById(\"view\");if (h === \"details\") {v.textContent = \"Detail page: SKU-12345\";localStorage.setItem(\"visited_details\", \"true\");} else {v.textContent = \"Home list view\";}}window.addEventListener(\"hashchange\", render);render();</script>",
+  "evaluator": {
+    "func": [
+      "exact_match",
+      "contains"
+    ],
+    "conj": "and",
+    "result": [
+      {
+        "getter": "local_storage",
+        "key": "visited_details"
+      },
+      {
+        "getter": "page_url"
+      }
+    ],
+    "expected": [
+      {
+        "expected": "true"
+      },
+      {
+        "exclude": [
+          "#details"
+        ]
+      }
+    ]
+  }
+}

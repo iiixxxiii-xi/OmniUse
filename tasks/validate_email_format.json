@@ -1,0 +1,20 @@
+{
+  "id": "validate_email_format",
+  "difficulty": "medium",
+  "instruction": "Subscribe with the email 'ada@example.com'. An invalid email must be rejected with 'Invalid email address'; a valid one is accepted by showing 'Subscribed'.",
+  "html": "<input id=\"email\" placeholder=\"you@example.com\"><button id=\"sub\" onclick=\"check()\">Subscribe</button><div id=\"error\" style=\"color:red; display:none\"></div><div id=\"ok\" style=\"display:none\">Subscribed</div><script>function check(){var v = document.getElementById(\"email\").value.trim();var valid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v);document.getElementById(\"error\").style.display = valid ? \"none\" : \"block\";document.getElementById(\"ok\").style.display = valid ? \"block\" : \"none\";if (!valid) document.getElementById(\"error\").textContent = \"Invalid email address\";}</script>",
+  "evaluator": {
+    "func": "contains",
+    "result": {
+      "getter": "page_text"
+    },
+    "expected": {
+      "include": [
+        "Subscribed"
+      ],
+      "exclude": [
+        "Invalid email"
+      ]
+    }
+  }
+}

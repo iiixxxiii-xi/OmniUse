@@ -1,0 +1,32 @@
+{
+  "id": "truncate_long_title",
+  "difficulty": "easy",
+  "instruction": "Click 'Show details' and confirm the product title is truncated (the element carries a data-truncated flag and its text ends in '...').",
+  "html": "<button id=\"show\" onclick=\"show()\">Show details</button><div id=\"title\"></div><script>function show(){var long = \"This is an extremely long product title that exceeds the display limit and must be truncated\";var el = document.getElementById(\"title\");el.textContent = long.slice(0, 30) + \"...\";el.setAttribute(\"data-truncated\", \"true\");}</script>",
+  "evaluator": {
+    "func": [
+      "exact_match",
+      "regex_match"
+    ],
+    "conj": "and",
+    "result": [
+      {
+        "getter": "element_attribute",
+        "selector": "#title",
+        "attribute": "data-truncated"
+      },
+      {
+        "getter": "element_text",
+        "selector": "#title"
+      }
+    ],
+    "expected": [
+      {
+        "expected": "true"
+      },
+      {
+        "pattern": "\\.\\.\\.$"
+      }
+    ]
+  }
+}

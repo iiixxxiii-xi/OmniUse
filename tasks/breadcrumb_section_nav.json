@@ -1,0 +1,16 @@
+{
+  "id": "breadcrumb_section_nav",
+  "difficulty": "medium",
+  "instruction": "Using the breadcrumb links, navigate to the 'Specs' section and confirm the panel shows 'Specs: 16GB RAM'.",
+  "html": "<nav><a href=\"#overview\" onclick=\"location.hash='overview'; return false;\">Overview</a><a href=\"#specs\" onclick=\"location.hash='specs'; return false;\">Specs</a><a href=\"#reviews\" onclick=\"location.hash='reviews'; return false;\">Reviews</a></nav><div id=\"panel\"></div><script>function render(){var h = location.hash.replace(\"#\", \"\") || \"overview\";var content = { overview: \"Overview content\", specs: \"Specs: 16GB RAM\", reviews: \"Reviews: 4.5 stars\" };document.getElementById(\"panel\").textContent = content[h] || \"Overview content\";}window.addEventListener(\"hashchange\", render);render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#panel"
+    },
+    "expected": {
+      "expected": "Specs: 16GB RAM"
+    }
+  }
+}

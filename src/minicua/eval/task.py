@@ -12,7 +12,7 @@ turns that skip into a :class:`TaskDefinitionError`.
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -27,6 +27,7 @@ class TaskDef(BaseModel):
 
     id: str = Field(min_length=1)
     instruction: str = Field(min_length=1)
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
     initial_url: str | None = None
     html: str | None = None  # inline HTML fixture (page.set_content)
     evaluator: EvaluatorSpec

@@ -1,0 +1,16 @@
+{
+  "id": "disabled_until_checkbox",
+  "difficulty": "medium",
+  "instruction": "Check the 'I agree to the terms' box to enable the Submit button, then click Submit and confirm 'Submitted' appears.",
+  "html": "<label><input type=\"checkbox\" id=\"agree\" onclick=\"toggle()\"> I agree to the terms</label><button id=\"submit\" disabled onclick=\"document.getElementById('out').textContent='Submitted'\">Submit</button><div id=\"out\"></div><script>function toggle(){document.getElementById(\"submit\").disabled = !document.getElementById(\"agree\").checked;}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Submitted"
+    }
+  }
+}

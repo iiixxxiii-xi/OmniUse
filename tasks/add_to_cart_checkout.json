@@ -1,0 +1,19 @@
+{
+  "id": "add_to_cart_checkout",
+  "difficulty": "medium",
+  "instruction": "Add two 'Apple' items and one 'Banana' to the cart, then click Checkout and confirm the summary reports 3 items.",
+  "html": "<div id=\"catalog\"><button onclick=\"addToCart('Apple')\">Add Apple</button><button onclick=\"addToCart('Banana')\">Add Banana</button></div><div id=\"cart-count\">0</div><button id=\"checkout\" onclick=\"checkout()\">Checkout</button><div id=\"summary\"></div><script>var cart = [];function addToCart(item){cart.push(item);document.getElementById(\"cart-count\").textContent = cart.length;}function checkout(){var s = cart.length === 0 ? \"Cart is empty\" : \"Checked out \" + cart.length + \" item(s): \" + cart.join(\", \");document.getElementById(\"summary\").textContent = s;}</script>",
+  "evaluator": {
+    "func": "contains",
+    "result": {
+      "getter": "element_text",
+      "selector": "#summary"
+    },
+    "expected": {
+      "include": [
+        "Checked out 3",
+        "Apple, Apple, Banana"
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "async_lazy_content",
+  "difficulty": "hard",
+  "instruction": "Wait for the page to finish loading, then confirm the content shows 'Delayed content ready'.",
+  "html": "<div id=\"loading\">Loading...</div><div id=\"content\" style=\"display:none\">Delayed content ready</div><script>setTimeout(function(){document.getElementById(\"loading\").style.display = \"none\";document.getElementById(\"content\").style.display = \"block\";}, 1200);</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#content"
+    },
+    "expected": {
+      "expected": "Delayed content ready"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "search_filter_verify_detail",
+  "difficulty": "medium",
+  "instruction": "Search the catalog for 'phone', select the 'Electronics' category, then open the 'Phone X' result and confirm the detail panel shows 'Phone X - 128GB, 5G - $499'.",
+  "html": "<input id=\"q\" placeholder=\"Search products\"><button id=\"search\" onclick=\"render()\">Search</button><div><button class=\"filter\" onclick=\"setCat('all')\">All</button><button class=\"filter\" onclick=\"setCat('electronics')\">Electronics</button><button class=\"filter\" onclick=\"setCat('books')\">Books</button></div><ul id=\"results\"></ul><div id=\"detail\"></div><script>var CAT = \"all\";var DATA = [{name:\"Phone X\", cat:\"electronics\", detail:\"Phone X - 128GB, 5G - $499\"},{name:\"Laptop Pro\", cat:\"electronics\", detail:\"Laptop Pro - 16GB RAM - $1299\"},{name:\"Novel\", cat:\"books\", detail:\"Novel - paperback, 320 pages - $15\"}];function setCat(c){ CAT = c; render(); }function render(){var q = document.getElementById(\"q\").value.trim().toLowerCase();var items = DATA.filter(function(d){var okQ = !q || d.name.toLowerCase().indexOf(q) >= 0;var okC = CAT === \"all\" || d.cat === CAT;return okQ && okC;});var ul = document.getElementById(\"results\");ul.innerHTML = \"\";document.getElementById(\"detail\").textContent = \"\";items.forEach(function(d){var li = document.createElement(\"li\");var b = document.createElement(\"button\");b.textContent = d.name;b.setAttribute(\"onclick\", \"showDetail('\" + d.name + \"')\");li.appendChild(b);ul.appendChild(li);});}function showDetail(name){var d = DATA.filter(function(x){ return x.name === name; })[0];document.getElementById(\"detail\").textContent = d.detail;}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#detail"
+    },
+    "expected": {
+      "expected": "Phone X - 128GB, 5G - $499"
+    }
+  }
+}

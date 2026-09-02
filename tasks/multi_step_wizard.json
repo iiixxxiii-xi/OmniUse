@@ -1,0 +1,16 @@
+{
+  "id": "multi_step_wizard",
+  "difficulty": "medium",
+  "instruction": "Complete the signup wizard: enter the name 'Alice', click Next, enter the email 'alice@example.com', click Next, then click Finish and confirm the page shows 'Complete: Alice'.",
+  "html": "<div class=\"step\" id=\"s1\"><input id=\"name\" placeholder=\"Full name\"><span id=\"err1\"></span><button onclick=\"go(1)\">Next</button></div><div class=\"step\" id=\"s2\" style=\"display:none\"><input id=\"email\" placeholder=\"Email\"><span id=\"err2\"></span><button onclick=\"go(2)\">Next</button></div><div class=\"step\" id=\"s3\" style=\"display:none\"><button onclick=\"go(3)\">Finish</button></div><div id=\"done\"></div><script>function go(n){if (n === 1) {if (!document.getElementById(\"name\").value.trim()) { document.getElementById(\"err1\").textContent = \"Name is required\"; return; }document.getElementById(\"s1\").style.display = \"none\";document.getElementById(\"s2\").style.display = \"block\";} else if (n === 2) {if (!document.getElementById(\"email\").value.trim()) { document.getElementById(\"err2\").textContent = \"Email is required\"; return; }document.getElementById(\"s2\").style.display = \"none\";document.getElementById(\"s3\").style.display = \"block\";} else {document.getElementById(\"done\").textContent = \"Complete: \" + document.getElementById(\"name\").value.trim();}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#done"
+    },
+    "expected": {
+      "expected": "Complete: Alice"
+    }
+  }
+}

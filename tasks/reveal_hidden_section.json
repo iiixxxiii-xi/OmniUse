@@ -1,0 +1,32 @@
+{
+  "id": "reveal_hidden_section",
+  "difficulty": "easy",
+  "instruction": "Click 'Show section' to reveal the hidden section, then read the secret value 'SECRET-VALUE-42'.",
+  "html": "<button id=\"toggle\" onclick=\"reveal()\">Show section</button><div id=\"section\" style=\"display:none\" data-visible=\"false\"><span id=\"secret\">SECRET-VALUE-42</span></div><script>function reveal(){var s = document.getElementById(\"section\");s.style.display = \"block\";s.setAttribute(\"data-visible\", \"true\");}</script>",
+  "evaluator": {
+    "func": [
+      "exact_match",
+      "exact_match"
+    ],
+    "conj": "and",
+    "result": [
+      {
+        "getter": "element_attribute",
+        "selector": "#section",
+        "attribute": "data-visible"
+      },
+      {
+        "getter": "element_text",
+        "selector": "#secret"
+      }
+    ],
+    "expected": [
+      {
+        "expected": "true"
+      },
+      {
+        "expected": "SECRET-VALUE-42"
+      }
+    ]
+  }
+}

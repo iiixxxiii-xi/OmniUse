@@ -1,0 +1,16 @@
+{
+  "id": "dynamic_append_items",
+  "difficulty": "easy",
+  "instruction": "Add three items to the list, then remove one, and confirm two items remain.",
+  "html": "<button id=\"add\" onclick=\"addItem()\">Add item</button><button id=\"remove\" onclick=\"removeItem()\">Remove item</button><ul id=\"list\"></ul><script>function addItem(){var li = document.createElement(\"li\");li.textContent = \"Item \" + (document.getElementById(\"list\").children.length + 1);document.getElementById(\"list\").appendChild(li);}function removeItem(){var list = document.getElementById(\"list\");if (list.children.length) list.removeChild(list.lastElementChild);}</script>",
+  "evaluator": {
+    "func": "count_eq",
+    "result": {
+      "getter": "element_count",
+      "selector": "#list li"
+    },
+    "expected": {
+      "expected": 2
+    }
+  }
+}

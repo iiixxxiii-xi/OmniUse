@@ -1,0 +1,16 @@
+{
+  "id": "pagination_next_page",
+  "difficulty": "medium",
+  "instruction": "Click 'Next' to go to page 2 and confirm the content shows 'Page 2 content: EXTRA-INFO'.",
+  "html": "<div id=\"content\"></div><button id=\"next\" onclick=\"location.hash='page2'; return false;\">Next page</button><script>function render(){var h = location.hash;document.getElementById(\"content\").textContent = (h === \"#page2\") ? \"Page 2 content: EXTRA-INFO\" : \"Page 1 content\";}window.addEventListener(\"hashchange\", render);render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#content"
+    },
+    "expected": {
+      "expected": "Page 2 content: EXTRA-INFO"
+    }
+  }
+}

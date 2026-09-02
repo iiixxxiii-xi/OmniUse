@@ -1,0 +1,20 @@
+{
+  "id": "validate_required_fields",
+  "difficulty": "medium",
+  "instruction": "Register with first name 'Ada' and last name 'Lovelace'. Missing required fields must surface a validation error; on success the form shows 'Registered'.",
+  "html": "<input id=\"first\" placeholder=\"First name\"><input id=\"last\" placeholder=\"Last name\"><button id=\"go\" onclick=\"submit()\">Submit</button><div id=\"errors\"></div><div id=\"ok\" style=\"display:none\">Registered</div><script>function submit(){var f = document.getElementById(\"first\").value.trim();var l = document.getElementById(\"last\").value.trim();var errs = [];if (!f) errs.push(\"First name is required\");if (!l) errs.push(\"Last name is required\");document.getElementById(\"errors\").textContent = errs.join(\"; \");document.getElementById(\"ok\").style.display = errs.length ? \"none\" : \"block\";}</script>",
+  "evaluator": {
+    "func": "contains",
+    "result": {
+      "getter": "page_text"
+    },
+    "expected": {
+      "include": [
+        "Registered"
+      ],
+      "exclude": [
+        "is required"
+      ]
+    }
+  }
+}

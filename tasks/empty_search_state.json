@@ -1,0 +1,16 @@
+{
+  "id": "empty_search_state",
+  "difficulty": "easy",
+  "instruction": "Search for 'zzz' (which matches nothing) and confirm the empty state 'No results found' is shown.",
+  "html": "<input id=\"q\" placeholder=\"Search\"><button id=\"go\" onclick=\"search()\">Search</button><ul id=\"results\"></ul><div id=\"empty\" style=\"display:none\">No results found</div><script>function search(){var q = document.getElementById(\"q\").value.trim().toLowerCase();var data = [\"apple\", \"banana\", \"cherry\"];var m = data.filter(function(x){ return q && x.indexOf(q) >= 0; });document.getElementById(\"results\").innerHTML = \"\";if (m.length) {m.forEach(function(x){ var li = document.createElement(\"li\"); li.textContent = x; document.getElementById(\"results\").appendChild(li); });document.getElementById(\"empty\").style.display = \"none\";} else {document.getElementById(\"empty\").style.display = \"block\";}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#empty"
+    },
+    "expected": {
+      "expected": "No results found"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "cascade_dependent_select",
+  "difficulty": "medium",
+  "instruction": "Select country 'United States', then select city 'Los Angeles' (which only appears after choosing the country), and confirm the output shows 'Los Angeles'.",
+  "html": "<select id=\"country\" onchange=\"populate()\"><option value=\"\">Choose country</option><option value=\"us\">United States</option><option value=\"ca\">Canada</option></select><select id=\"city\" onchange=\"showCity()\"><option value=\"\">Choose city</option></select><div id=\"out\"></div><script>var CITIES = { us: [\"New York\", \"Los Angeles\"], ca: [\"Toronto\", \"Vancouver\"] };function populate(){var c = document.getElementById(\"country\").value;var city = document.getElementById(\"city\");city.innerHTML = '<option value=\"\">Choose city</option>';(CITIES[c] || []).forEach(function(x){var o = document.createElement(\"option\");o.value = x; o.textContent = x;city.appendChild(o);});}function showCity(){document.getElementById(\"out\").textContent = document.getElementById(\"city\").value;}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Los Angeles"
+    }
+  }
+}

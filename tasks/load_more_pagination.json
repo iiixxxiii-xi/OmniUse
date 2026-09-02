@@ -1,0 +1,31 @@
+{
+  "id": "load_more_pagination",
+  "difficulty": "hard",
+  "instruction": "Click 'Load more' until every product is visible (5 items total), then confirm the status shows 'All products loaded'.",
+  "html": "<ul id=\"list\"><li>Product 1</li><li>Product 2</li></ul><button id=\"more\" onclick=\"loadMore()\">Load more</button><div id=\"status\"></div><script>var hidden = [\"Product 3\", \"Product 4\", \"Product 5\"];function loadMore(){var ul = document.getElementById(\"list\");var item = hidden.shift();if (item) {var li = document.createElement(\"li\");li.textContent = item;ul.appendChild(li);}if (!hidden.length) {document.getElementById(\"more\").style.display = \"none\";document.getElementById(\"status\").textContent = \"All products loaded\";}}</script>",
+  "evaluator": {
+    "func": [
+      "exact_match",
+      "count_eq"
+    ],
+    "conj": "and",
+    "result": [
+      {
+        "getter": "element_text",
+        "selector": "#status"
+      },
+      {
+        "getter": "element_count",
+        "selector": "#list li"
+      }
+    ],
+    "expected": [
+      {
+        "expected": "All products loaded"
+      },
+      {
+        "expected": 5
+      }
+    ]
+  }
+}

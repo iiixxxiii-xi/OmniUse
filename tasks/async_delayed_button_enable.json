@@ -1,0 +1,16 @@
+{
+  "id": "async_delayed_button_enable",
+  "difficulty": "hard",
+  "instruction": "Wait until the 'Confirm' button becomes enabled, click it, and verify 'Confirmed' appears.",
+  "html": "<button id=\"confirm\" disabled onclick=\"document.getElementById('out').textContent='Confirmed'\">Confirm</button><div id=\"out\"></div><script>setTimeout(function(){document.getElementById(\"confirm\").disabled = false;}, 1200);</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Confirmed"
+    }
+  }
+}
