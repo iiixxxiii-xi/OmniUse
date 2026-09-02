@@ -23,15 +23,31 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class ClickParams(BaseModel):
-    """Click an interactive element by its grounding index (or raw coordinates)."""
+    """Click an interactive element by its grounding index, or at raw coordinates.
 
-    index: int = Field(ge=1, description="Element index from the current browser state selector map.")
+    Exactly one target form is required: ``index`` (the grounding handle from the
+    selector map) OR both ``coordinate_x`` and ``coordinate_y`` (raw viewport
+    pixels). A vision model that reasons in screen space emits coordinates; a
+    DOM-grounded model emits an index. Both are valid.
+    """
+
+    index: int | None = Field(
+        default=None, ge=1, description="Element index from the current browser state selector map."
+    )
     coordinate_x: int | None = Field(
-        default=None, ge=0, description="Fallback: x coordinate (CSS px) when index grounding is unavailable."
+        default=None, ge=0, description="Raw x coordinate (CSS px), used when index is absent."
     )
     coordinate_y: int | None = Field(
-        default=None, ge=0, description="Fallback: y coordinate (CSS px) when index grounding is unavailable."
+        default=None, ge=0, description="Raw y coordinate (CSS px), used when index is absent."
     )
+
+    @model_validator(mode="after")
+    def _require_target(self) -> "ClickParams":
+        if self.index is None and (self.coordinate_x is None or self.coordinate_y is None):
+            raise ValueError(
+                "click requires either 'index' or both 'coordinate_x' and 'coordinate_y'"
+            )
+        return self
 
 
 class TypeParams(BaseModel):

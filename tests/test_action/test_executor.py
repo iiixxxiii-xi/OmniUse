@@ -92,6 +92,23 @@ async def test_click_by_coordinate_fallback(session):
     assert await session.page.inner_text("#b") == "clicked"
 
 
+@pytest.mark.asyncio
+async def test_click_by_coordinates_only(session):
+    # A vision model emits raw coordinates with no index; the executor clicks the
+    # viewport pixel directly (this used to fail validation and force a requery).
+    await session.page.set_content(
+        "<button id=b onclick=\"this.textContent='clicked'\" style='position:absolute;top:0;left:0;width:100px;height:100px'>go</button>"
+    )
+    state = await extract_state(session.page)
+    res = await execute(
+        Action(name="click", params=ClickParams(coordinate_x=50, coordinate_y=50)),
+        session.page,
+        state,
+    )
+    assert res.success is True
+    assert await session.page.inner_text("#b") == "clicked"
+
+
 # --------------------------------------------------------------------------- #
 # type
 # --------------------------------------------------------------------------- #

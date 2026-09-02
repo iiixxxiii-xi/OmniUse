@@ -65,6 +65,30 @@ def test_click_params_requires_positive_index():
         ClickParams(index=0)
 
 
+def test_click_params_accepts_coordinates_only():
+    # A vision model reasons in screen space and emits raw coordinates (no index).
+    p = ClickParams(coordinate_x=10, coordinate_y=20)
+    assert p.index is None
+    assert p.coordinate_x == 10
+    assert p.coordinate_y == 20
+
+
+def test_click_params_coerces_numeric_string_coordinates():
+    # The model may emit coordinates as strings; pydantic coerces to int.
+    p = ClickParams(coordinate_x="25", coordinate_y="50")
+    assert p.coordinate_x == 25
+    assert p.coordinate_y == 50
+
+
+def test_click_params_requires_index_or_both_coordinates():
+    with pytest.raises(ValidationError):
+        ClickParams()
+    with pytest.raises(ValidationError):
+        ClickParams(coordinate_x=10)  # missing coordinate_y
+    with pytest.raises(ValidationError):
+        ClickParams(coordinate_y=10)  # missing coordinate_x
+
+
 def test_type_params_requires_text():
     with pytest.raises(ValidationError):
         TypeParams(index=1, text="")

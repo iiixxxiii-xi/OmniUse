@@ -25,7 +25,10 @@ def test_registry_tool_schema_is_openai_function_format():
     params = click["function"]["parameters"]
     assert params["type"] == "object"
     assert "index" in params["properties"]
-    assert "index" in params["required"]
+    assert "coordinate_x" in params["properties"]
+    assert "coordinate_y" in params["properties"]
+    # index is optional now (coordinate-only clicks are valid), so it is not required.
+    assert "index" not in params.get("required", [])
 
 
 def test_registry_tool_schema_strips_titles():
