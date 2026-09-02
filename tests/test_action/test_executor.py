@@ -11,6 +11,7 @@ from minicua.action.models import (
     NavigateParams,
     PressParams,
     ScrollParams,
+    SelectParams,
     SwitchTabParams,
     TypeParams,
     WaitParams,
@@ -32,6 +33,34 @@ async def test_execute_click(session):
     res = await execute(Action(name="click", params=ClickParams(index=1)), session.page, state)
     assert res.success is True
     assert await session.page.inner_text("#b") == "clicked"
+
+
+# --------------------------------------------------------------------------- #
+# select
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_execute_select_fires_change(session):
+    await session.page.set_content(
+        "<select id=color><option value=red>Red</option><option value=green>Green</option></select>"
+        "<div id=out></div>"
+        "<script>document.getElementById('color').onchange=()=>"
+        "document.getElementById('out').textContent=document.getElementById('color').value</script>"
+    )
+    state = await extract_state(session.page)
+    res = await execute(Action(name="select", params=SelectParams(index=1, text="Green")), session.page, state)
+    assert res.success is True
+    assert await session.page.inner_text("#out") == "green"
+
+
+@pytest.mark.asyncio
+async def test_execute_select_on_non_select_fails(session):
+    await session.page.set_content("<button id=b>go</button>")
+    state = await extract_state(session.page)
+    res = await execute(Action(name="select", params=SelectParams(index=1, text="Green")), session.page, state)
+    assert res.success is False
+    assert res.error_code == ActionError.ELEMENT_NOT_EDITABLE
 
 
 @pytest.mark.asyncio

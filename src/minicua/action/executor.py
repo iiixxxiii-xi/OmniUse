@@ -28,6 +28,7 @@ from minicua.action.models import (
     NavigateParams,
     PressParams,
     ScrollParams,
+    SelectParams,
     SwitchTabParams,
     TypeParams,
     WaitParams,
@@ -199,6 +200,31 @@ async def _type(params: TypeParams, page: Page, state: BrowserState | None = Non
             )
         ) from None
     return ActionResult.ok(f"Typed into element {params.index}")
+
+
+@register_action("select", SelectParams)
+async def _select(params: SelectParams, page: Page, state: BrowserState | None = None) -> ActionResult:
+    locator, element = await _ground(params.index, page, state)
+    if element.tag != "select":
+        raise _ActionFailure(
+            ActionResult.fail(
+                f"element index {params.index} (<{element.tag}>) is not a <select>",
+                error_code=ActionError.ELEMENT_NOT_EDITABLE,
+            )
+        )
+    try:
+        # select_option(by label) matches the option's visible text and fires the
+        # change event, which is what cascading dropdowns depend on.
+        await locator.select_option(label=params.text, timeout=DEFAULT_ACTION_TIMEOUT_MS)
+    except PlaywrightTimeoutError:
+        raise _ActionFailure(
+            ActionResult.fail(
+                f"selecting option {params.text!r} in element {params.index} timed out",
+                error_code=ActionError.EXECUTION_FAILED,
+                retryable=True,
+            )
+        ) from None
+    return ActionResult.ok(f"Selected {params.text!r} in element {params.index}")
 
 
 @register_action("scroll", ScrollParams)

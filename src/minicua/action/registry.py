@@ -33,6 +33,10 @@ ACTION_DESCRIPTIONS: dict[str, str] = {
         "Type text into an editable element (input/textarea/contenteditable) by its "
         "index. Clears existing text first unless clear=False."
     ),
+    "select": (
+        "Select an option from a native <select> dropdown by its visible label "
+        "(one of the option labels listed in the page state)."
+    ),
     "scroll": "Scroll the viewport in a direction, optionally by a pixel amount.",
     "navigate": "Navigate the current tab to a URL.",
     "go_back": "Go back one entry in the current tab's history.",

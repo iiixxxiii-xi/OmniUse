@@ -58,6 +58,19 @@ class TypeParams(BaseModel):
     clear: bool = Field(default=True, description="Clear existing content before typing.")
 
 
+class SelectParams(BaseModel):
+    """Select an option from a native ``<select>`` by its visible label.
+
+    Mirrors Browser Use's ``select_dropdown_option``: the model targets the
+    ``<select>`` by ``index`` and names the option by its visible text (one of the
+    ``<option>`` labels listed in the page state). Selecting dispatches the
+    ``change`` event so dependent (cascading) fields update.
+    """
+
+    index: int = Field(ge=1, description="Element index of the <select> to change.")
+    text: str = Field(min_length=1, description="Visible label of the option to select.")
+
+
 class ScrollParams(BaseModel):
     """Scroll the viewport by a direction, optionally a pixel amount."""
 
@@ -109,7 +122,7 @@ class DoneParams(BaseModel):
 # --------------------------------------------------------------------------- #
 
 ActionName = Literal[
-    "click", "type", "scroll", "navigate", "go_back",
+    "click", "type", "select", "scroll", "navigate", "go_back",
     "switch_tab", "press", "wait", "done",
 ]
 
@@ -117,6 +130,7 @@ ActionName = Literal[
 PARAM_MODELS: dict[str, type[BaseModel]] = {
     "click": ClickParams,
     "type": TypeParams,
+    "select": SelectParams,
     "scroll": ScrollParams,
     "navigate": NavigateParams,
     "go_back": GoBackParams,
@@ -134,6 +148,7 @@ _NO_PARAM_ACTIONS: frozenset[str] = frozenset({"go_back"})
 ActionParams = (
     ClickParams
     | TypeParams
+    | SelectParams
     | ScrollParams
     | NavigateParams
     | GoBackParams

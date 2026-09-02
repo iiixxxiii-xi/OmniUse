@@ -92,6 +92,10 @@ def resolve_model(model_id: str) -> ChatModel:
             base_url=os.environ.get("DASHSCOPE_BASE_URL", DASHSCOPE_BASE_URL),
             api_key=api_key,
             supports_vision=True,
+            # qwen3-vl is a reasoning model too; its chain-of-thought shares the
+            # output budget with tool calls, so the default 4096 ceiling truncates
+            # it before it emits the tool call.
+            max_tokens=8192,
         )
 
     raise ValueError(

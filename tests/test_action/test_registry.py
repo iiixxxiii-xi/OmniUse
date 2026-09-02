@@ -13,9 +13,9 @@ def test_registry_generates_tools_for_builtin_actions():
     assert "done" in names
 
 
-def test_registry_has_all_nine_default_actions():
+def test_registry_has_all_ten_default_actions():
     reg = ActionRegistry()
-    assert len(reg) == 9
+    assert len(reg) == 10
 
 
 def test_registry_tool_schema_is_openai_function_format():

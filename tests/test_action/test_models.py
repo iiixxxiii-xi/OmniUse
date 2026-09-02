@@ -131,9 +131,9 @@ def test_action_param_model_lookup():
     assert action_param_model("go_back") is GoBackParams
 
 
-def test_all_nine_actions_registered():
+def test_all_ten_actions_registered():
     assert ACTION_NAMES == {
-        "click", "type", "scroll", "navigate", "go_back",
+        "click", "type", "select", "scroll", "navigate", "go_back",
         "switch_tab", "press", "wait", "done",
     }
 
