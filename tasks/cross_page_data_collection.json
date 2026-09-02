@@ -1,0 +1,30 @@
+{
+  "id": "cross_page_data_collection",
+  "instruction": "Walk through the 6 report pages and collect 12 numbers (total users, revenue, orders, NPS score, uptime, churn rate, sessions, avg rating, support tickets, refund rate, page views, signups). On the summary form, type each collected value into its matching field, then click Submit.",
+  "difficulty": "hard",
+  "html": "<script>\nvar D={};\nfunction toggle(id){var m=document.getElementById('menu-'+id);m.style.display=(m.style.display==='none')?'block':'none';}\nfunction pick(id,v){D[id]=v;var b=document.getElementById('dd-'+id);if(b)b.textContent=v;var m=document.getElementById('menu-'+id);if(m)m.style.display='none';}\nfunction show(id){var ps=document.querySelectorAll('.page');for(var i=0;i<ps.length;i++){ps[i].style.display='none';}var t=document.getElementById(id);if(t)t.style.display='block';}\nfunction val(id){var e=document.getElementById(id);return e?e.value.trim():'';}\nfunction radioVal(name){var r=document.querySelector('input[name=\"'+name+'\"]:checked');return r?r.value:'';}\nfunction groupChecked(name){var a=[];var cs=document.querySelectorAll('input[name=\"'+name+'\"]:checked');for(var i=0;i<cs.length;i++)a.push(cs[i].value);return a.join(',');}\nfunction boxChecked(id){var e=document.getElementById(id);return e&&e.checked?'yes':'no';}\n</script><div style='font-family:sans-serif'><div class='page' id='dpage1' style='display:none'><h3>Report page 1</h3><div class='stat'><span>Total users:</span> <b>847</b></div><div class='stat'><span>Revenue:</span> <b>$12,450</b></div><button onclick=\"show('dpage2')\">Next</button></div><div class='page' id='dpage2' style='display:none'><h3>Report page 2</h3><div class='stat'><span>Orders:</span> <b>312</b></div><div class='stat'><span>NPS score:</span> <b>42</b></div><button onclick=\"show('dpage3')\">Next</button></div><div class='page' id='dpage3' style='display:none'><h3>Report page 3</h3><div class='stat'><span>Uptime:</span> <b>99.98%</b></div><div class='stat'><span>Churn rate:</span> <b>1.4%</b></div><button onclick=\"show('dpage4')\">Next</button></div><div class='page' id='dpage4' style='display:none'><h3>Report page 4</h3><div class='stat'><span>Sessions:</span> <b>5,210</b></div><div class='stat'><span>Avg rating:</span> <b>4.8</b></div><button onclick=\"show('dpage5')\">Next</button></div><div class='page' id='dpage5' style='display:none'><h3>Report page 5</h3><div class='stat'><span>Support tickets:</span> <b>73</b></div><div class='stat'><span>Refund rate:</span> <b>0.9%</b></div><button onclick=\"show('dpage6')\">Next</button></div><div class='page' id='dpage6' style='display:none'><h3>Report page 6</h3><div class='stat'><span>Page views:</span> <b>98,120</b></div><div class='stat'><span>Signups:</span> <b>1,240</b></div><button onclick=\"show('form')\">Go to summary</button></div><div class='page' id='form' style='display:none'><h2>Summary form</h2><p>Enter the numbers you collected from the report pages.</p>Total users: <input id='f_p_users' placeholder=''><br>Revenue: <input id='f_p_revenue' placeholder=''><br>Orders: <input id='f_p_orders' placeholder=''><br>NPS score: <input id='f_p_nps' placeholder=''><br>Uptime: <input id='f_p_uptime' placeholder=''><br>Churn rate: <input id='f_p_churn' placeholder=''><br>Sessions: <input id='f_p_sessions' placeholder=''><br>Avg rating: <input id='f_p_rating' placeholder=''><br>Support tickets: <input id='f_p_tickets' placeholder=''><br>Refund rate: <input id='f_p_refunds' placeholder=''><br>Page views: <input id='f_p_views' placeholder=''><br>Signups: <input id='f_p_signups' placeholder=''><br><button onclick=\"var s=''+'|users='+val('f_p_users')+'|revenue='+val('f_p_revenue')+'|orders='+val('f_p_orders')+'|nps='+val('f_p_nps')+'|uptime='+val('f_p_uptime')+'|churn='+val('f_p_churn')+'|sessions='+val('f_p_sessions')+'|rating='+val('f_p_rating')+'|tickets='+val('f_p_tickets')+'|refunds='+val('f_p_refunds')+'|views='+val('f_p_views')+'|signups='+val('f_p_signups');document.getElementById('summary').textContent=s;\">Submit</button></div><div id='summary'></div><script>show('dpage1');</script></div>",
+  "max_steps": 40,
+  "evaluator": {
+    "func": "contains",
+    "result": {
+      "getter": "element_text",
+      "selector": "#summary"
+    },
+    "expected": {
+      "expected": [
+        "users=847",
+        "revenue=$12,450",
+        "orders=312",
+        "nps=42",
+        "uptime=99.98%",
+        "churn=1.4%",
+        "sessions=5,210",
+        "rating=4.8",
+        "tickets=73",
+        "refunds=0.9%",
+        "views=98,120",
+        "signups=1,240"
+      ]
+    }
+  }
+}

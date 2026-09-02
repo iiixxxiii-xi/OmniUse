@@ -1,0 +1,29 @@
+{
+  "id": "conditional_registration",
+  "instruction": "Fill the form, revealing conditional fields. Step 1: name 'Morgan Chen', email 'morgan@example.com', password 'pass123', phone '+1-555-0199', account type 'Business' (this reveals company fields): company 'Acme Labs', VAT 'CA123456', company size '51-200'; Next. Step 2: address '1 Main St', city 'Toronto', check 'Ship to a different address' (reveals): recipient 'Riley Chen', alternate address '8 Pine Rd', alternate city 'Seattle'; check 'This is a gift' (reveals): gift message 'Happy birthday!'; click 'Complete'.",
+  "difficulty": "hard",
+  "html": "<script>\nvar D={};\nfunction toggle(id){var m=document.getElementById('menu-'+id);m.style.display=(m.style.display==='none')?'block':'none';}\nfunction pick(id,v){D[id]=v;var b=document.getElementById('dd-'+id);if(b)b.textContent=v;var m=document.getElementById('menu-'+id);if(m)m.style.display='none';}\nfunction show(id){var ps=document.querySelectorAll('.page');for(var i=0;i<ps.length;i++){ps[i].style.display='none';}var t=document.getElementById(id);if(t)t.style.display='block';}\nfunction val(id){var e=document.getElementById(id);return e?e.value.trim():'';}\nfunction radioVal(name){var r=document.querySelector('input[name=\"'+name+'\"]:checked');return r?r.value:'';}\nfunction groupChecked(name){var a=[];var cs=document.querySelectorAll('input[name=\"'+name+'\"]:checked');for(var i=0;i<cs.length;i++)a.push(cs[i].value);return a.join(',');}\nfunction boxChecked(id){var e=document.getElementById(id);return e&&e.checked?'yes':'no';}\n</script><div style='font-family:sans-serif'><div class='page' id='page1' style='display:none'><h2>Account</h2><input id='c_name' placeholder='Full name'><input id='c_email' placeholder='Email'><input id='c_password' placeholder='Password'><input id='c_phone' placeholder='Phone'><input type='radio' name='acct' value='Personal' aria-label='Personal'><input type='radio' name='acct' value='Business' aria-label='Business'><div id='biz' style='display:none'><input id='c_company' placeholder='Company name'><input id='c_vat' placeholder='VAT number'><div class='dd'><button id='dd-c_size' onclick=\"toggle('c_size')\">Select company size</button><div id='menu-c_size' style='display:none'><button class='opt' data-dd='c_size' data-v='1-10' onclick=\"pick('c_size','1-10')\">1-10</button><button class='opt' data-dd='c_size' data-v='11-50' onclick=\"pick('c_size','11-50')\">11-50</button><button class='opt' data-dd='c_size' data-v='51-200' onclick=\"pick('c_size','51-200')\">51-200</button><button class='opt' data-dd='c_size' data-v='201+' onclick=\"pick('c_size','201+')\">201+</button></div></div></div><button onclick=\"show('page2')\">Next</button></div><div class='page' id='page2' style='display:none'><h2>Delivery</h2><input id='d_address' placeholder='Address'><input id='d_city' placeholder='City'><input type='checkbox' id='c_diff' name='c_diff' value='yes' aria-label='Ship to a different address'><div id='diff' style='display:none'><input id='d_alt_name' placeholder='Recipient name'><input id='d_alt_address' placeholder='Alternate address'><input id='d_alt_city' placeholder='Alternate city'></div><input type='checkbox' id='c_gift' name='c_gift' value='yes' aria-label='This is a gift'><div id='gift' style='display:none'><input id='d_giftmsg' placeholder='Gift message'></div><button onclick=\"var s='name='+val('c_name')+'|email='+val('c_email')+'|phone='+val('c_phone')+'|acct='+radioVal('acct')+'|company='+val('c_company')+'|vat='+val('c_vat')+'|size='+(D['c_size']||'')+'|diff='+boxChecked('c_diff')+'|alt='+val('d_alt_name')+','+val('d_alt_city')+'|gift='+boxChecked('c_gift')+'|msg='+val('d_giftmsg');document.getElementById('summary').textContent=s;\">Complete</button></div><div id='summary'></div><script>function updAcct(){var a=document.querySelector('input[name=\"acct\"]:checked');document.getElementById('biz').style.display=(a&&a.value==='Business')?'block':'none';}var rs=document.querySelectorAll('input[name=\"acct\"]');for(var i=0;i<rs.length;i++)rs[i].addEventListener('change',updAcct);function updDiff(){document.getElementById('diff').style.display=document.getElementById('c_diff').checked?'block':'none';}document.getElementById('c_diff').addEventListener('change',updDiff);function updGift(){document.getElementById('gift').style.display=document.getElementById('c_gift').checked?'block':'none';}document.getElementById('c_gift').addEventListener('change',updGift);show('page1');</script></div>",
+  "max_steps": 40,
+  "evaluator": {
+    "func": "contains",
+    "result": {
+      "getter": "element_text",
+      "selector": "#summary"
+    },
+    "expected": {
+      "expected": [
+        "name=Morgan Chen",
+        "email=morgan@example.com",
+        "phone=+1-555-0199",
+        "acct=Business",
+        "company=Acme Labs",
+        "vat=CA123456",
+        "size=51-200",
+        "diff=yes",
+        "alt=Riley Chen,Seattle",
+        "gift=yes",
+        "msg=Happy birthday!"
+      ]
+    }
+  }
+}

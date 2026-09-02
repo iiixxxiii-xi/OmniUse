@@ -1,0 +1,36 @@
+{
+  "id": "settings_panel_wizard",
+  "instruction": "Configure preferences across 3 screens, then save. Screen 1 (Notifications): turn ON 'Email alerts', 'Push alerts', 'SMS alerts', 'Desktop alerts'; leave 'Weekly digest' OFF; frequency 'Daily'; Next. Screen 2 (Privacy): turn ON 'Profile public', 'Share analytics', 'Personalized ads'; leave 'Show email' and 'Location tracking' OFF; visibility 'Friends'; Next. Screen 3 (Advanced): turn ON 'Dark mode', 'Autosave', 'Beta features', 'Two-factor auth'; leave 'Spellcheck' OFF; language 'French'; click 'Save Settings'.",
+  "difficulty": "hard",
+  "html": "<script>\nvar D={};\nfunction toggle(id){var m=document.getElementById('menu-'+id);m.style.display=(m.style.display==='none')?'block':'none';}\nfunction pick(id,v){D[id]=v;var b=document.getElementById('dd-'+id);if(b)b.textContent=v;var m=document.getElementById('menu-'+id);if(m)m.style.display='none';}\nfunction show(id){var ps=document.querySelectorAll('.page');for(var i=0;i<ps.length;i++){ps[i].style.display='none';}var t=document.getElementById(id);if(t)t.style.display='block';}\nfunction val(id){var e=document.getElementById(id);return e?e.value.trim():'';}\nfunction radioVal(name){var r=document.querySelector('input[name=\"'+name+'\"]:checked');return r?r.value:'';}\nfunction groupChecked(name){var a=[];var cs=document.querySelectorAll('input[name=\"'+name+'\"]:checked');for(var i=0;i<cs.length;i++)a.push(cs[i].value);return a.join(',');}\nfunction boxChecked(id){var e=document.getElementById(id);return e&&e.checked?'yes':'no';}\n</script><div style='font-family:sans-serif'><div class='page' id='page1' style='display:none'><h2>Notifications</h2><input type='checkbox' id='sw_email_alerts' aria-label='Email alerts'><input type='checkbox' id='sw_push_alerts' aria-label='Push alerts'><input type='checkbox' id='sw_sms_alerts' aria-label='SMS alerts'><input type='checkbox' id='sw_desktop_alerts' aria-label='Desktop alerts'><input type='checkbox' id='sw_weekly_digest' aria-label='Weekly digest'><div class='dd'><button id='dd-freq' onclick=\"toggle('freq')\">Select frequency</button><div id='menu-freq' style='display:none'><button class='opt' data-dd='freq' data-v='Realtime' onclick=\"pick('freq','Realtime')\">Realtime</button><button class='opt' data-dd='freq' data-v='Hourly' onclick=\"pick('freq','Hourly')\">Hourly</button><button class='opt' data-dd='freq' data-v='Daily' onclick=\"pick('freq','Daily')\">Daily</button></div></div><button onclick=\"show('page2')\">Next</button></div><div class='page' id='page2' style='display:none'><h2>Privacy</h2><input type='checkbox' id='sw_profile_public' aria-label='Profile public'><input type='checkbox' id='sw_show_email' aria-label='Show email'><input type='checkbox' id='sw_share_analytics' aria-label='Share analytics'><input type='checkbox' id='sw_personalized_ads' aria-label='Personalized ads'><input type='checkbox' id='sw_location_tracking' aria-label='Location tracking'><div class='dd'><button id='dd-visibility' onclick=\"toggle('visibility')\">Select visibility</button><div id='menu-visibility' style='display:none'><button class='opt' data-dd='visibility' data-v='Public' onclick=\"pick('visibility','Public')\">Public</button><button class='opt' data-dd='visibility' data-v='Friends' onclick=\"pick('visibility','Friends')\">Friends</button><button class='opt' data-dd='visibility' data-v='Private' onclick=\"pick('visibility','Private')\">Private</button></div></div><button onclick=\"show('page3')\">Next</button></div><div class='page' id='page3' style='display:none'><h2>Advanced</h2><input type='checkbox' id='sw_dark_mode' aria-label='Dark mode'><input type='checkbox' id='sw_autosave' aria-label='Autosave'><input type='checkbox' id='sw_spellcheck' aria-label='Spellcheck'><input type='checkbox' id='sw_beta_features' aria-label='Beta features'><input type='checkbox' id='sw_two_factor' aria-label='Two-factor auth'><div class='dd'><button id='dd-language' onclick=\"toggle('language')\">Select language</button><div id='menu-language' style='display:none'><button class='opt' data-dd='language' data-v='English' onclick=\"pick('language','English')\">English</button><button class='opt' data-dd='language' data-v='French' onclick=\"pick('language','French')\">French</button><button class='opt' data-dd='language' data-v='Spanish' onclick=\"pick('language','Spanish')\">Spanish</button></div></div><button onclick=\"var s='on='+boxChecked('sw_email_alerts')+'|push='+boxChecked('sw_push_alerts')+'|sms='+boxChecked('sw_sms_alerts')+'|desktop='+boxChecked('sw_desktop_alerts')+'|digest='+boxChecked('sw_weekly_digest')+'|freq='+D['freq']+'|public='+boxChecked('sw_profile_public')+'|show_email='+boxChecked('sw_show_email')+'|analytics='+boxChecked('sw_share_analytics')+'|ads='+boxChecked('sw_personalized_ads')+'|location='+boxChecked('sw_location_tracking')+'|visibility='+D['visibility']+'|dark='+boxChecked('sw_dark_mode')+'|autosave='+boxChecked('sw_autosave')+'|spell='+boxChecked('sw_spellcheck')+'|beta='+boxChecked('sw_beta_features')+'|twofa='+boxChecked('sw_two_factor')+'|language='+D['language'];document.getElementById('summary').textContent=s;\">Save Settings</button></div><div id='summary'></div><script>show('page1');</script></div>",
+  "max_steps": 40,
+  "evaluator": {
+    "func": "contains",
+    "result": {
+      "getter": "element_text",
+      "selector": "#summary"
+    },
+    "expected": {
+      "expected": [
+        "on=yes",
+        "push=yes",
+        "sms=yes",
+        "desktop=yes",
+        "digest=no",
+        "freq=Daily",
+        "public=yes",
+        "show_email=no",
+        "analytics=yes",
+        "ads=yes",
+        "location=no",
+        "visibility=Friends",
+        "dark=yes",
+        "autosave=yes",
+        "spell=no",
+        "beta=yes",
+        "twofa=yes",
+        "language=French"
+      ]
+    }
+  }
+}
