@@ -8,11 +8,15 @@ evaluator scores into the six summary metrics the project reports:
 * ``token_cost`` — total USD cost across model-call events.
 * ``latency`` — total run duration (max ts − min ts per log, summed).
 * ``recovery_rate`` — recovery events per action event.
-* ``invalid_action_rate`` — failed action events per action event.
+* ``invalid_action_rate`` — *unrecovered* failed action events per action event:
+  a failed action is "invalid" (wasted) only when no recovery in the same step
+  rescued it. A failed action followed by a successful recovery is *not* wasted.
 
 Every metric has a divide-by-zero guard (empty input → 0.0), so an empty suite
 or a run with no actions still yields a well-formed result dict.
 """
+
+import pytest
 
 from minicua.eval.metrics_aggregate import SIX_METRICS, aggregate
 from minicua.state.events import (
@@ -54,7 +58,9 @@ def test_aggregate_six_metrics():
     assert m["token_cost"] == 0.75  # 0.50 + 0.25
     assert m["latency"] == 3.0  # 2.0 + 1.0
     assert m["recovery_rate"] == 0.25  # 1 recovery / 4 actions
-    assert m["invalid_action_rate"] == 0.25  # 1 failed / 4 actions
+    # The single failed action is rescued by the recovery in its step, so it is
+    # not an "invalid" (wasted) action under the unrecovered-failure definition.
+    assert m["invalid_action_rate"] == 0.0  # 0 unrecovered failed / 4 actions
 
 
 def test_aggregate_empty_guards():
@@ -106,3 +112,49 @@ def test_aggregate_token_cost_from_model_call_with_usage():
     log.append(StepEvent(step=1, ts=1.0))
     m = aggregate([log], [1.0])
     assert m["token_cost"] > 0.0
+
+
+# --------------------------------------------------------------------------- #
+# invalid-action redefinition: only *unrecovered* failures are wasted
+# --------------------------------------------------------------------------- #
+
+
+def test_aggregate_recovered_failure_is_not_invalid():
+    # A failed click followed by a successful recovery in the same step is rescued,
+    # so it must NOT count as an invalid (wasted) action.
+    log = EventLog()
+    log.append(StepEvent(step=1, ts=0.0))
+    log.append(ActionEvent(step=1, ts=0.0, name="click", success=True))
+    log.append(ActionEvent(step=1, ts=0.0, name="click", success=False))
+    log.append(RecoveryEvent(step=1, ts=0.0, kind="stale"))
+    log.append(StepEvent(step=2, ts=0.0))
+    log.append(ActionEvent(step=2, ts=0.0, name="done", success=True))
+    m = aggregate([log], [1.0])
+    assert m["invalid_action_rate"] == 0.0  # 0 unrecovered / 3 actions
+
+
+def test_aggregate_unrecovered_failure_is_invalid():
+    # A failed click with no recovery in its step is genuinely wasted.
+    log = EventLog()
+    log.append(StepEvent(step=1, ts=0.0))
+    log.append(ActionEvent(step=1, ts=0.0, name="click", success=False))
+    log.append(ActionEvent(step=1, ts=0.0, name="done", success=True))
+    m = aggregate([log], [1.0])
+    assert m["invalid_action_rate"] == 0.5  # 1 unrecovered / 2 actions
+
+
+def test_aggregate_recovery_only_covers_its_own_step_failure():
+    # A recovery in one step must not "cancel" a failure in a different step.
+    # Step 1: one failed action, no recovery. Step 2: a recovery rescued an action
+    # that then succeeded (so no failed ActionEvent there). Global subtraction
+    # would wrongly report 0 unrecovered; per-step accounting reports 1.
+    log = EventLog()
+    log.append(StepEvent(step=1, ts=0.0))
+    log.append(ActionEvent(step=1, ts=0.0, name="click", success=False))
+    log.append(StepEvent(step=2, ts=0.0))
+    log.append(ActionEvent(step=2, ts=0.0, name="click", success=True))
+    log.append(RecoveryEvent(step=2, ts=0.0, kind="stale"))
+    log.append(StepEvent(step=3, ts=0.0))
+    log.append(ActionEvent(step=3, ts=0.0, name="done", success=True))
+    m = aggregate([log], [1.0])
+    assert m["invalid_action_rate"] == pytest.approx(1 / 3)  # 1 unrecovered / 3 actions
