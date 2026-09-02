@@ -119,6 +119,7 @@ class AgentResult(BaseModel):
     error: str | None = None
     history: list[StepRecord] = Field(default_factory=list)
     recoveries: int = 0
+    recovery_attempts: int = 0
     page_changes: int = 0
 
 
@@ -218,6 +219,7 @@ class Agent:
         registry: ActionRegistry | None = None,
         retry_policy: RetryPolicy | None = None,
         enable_recovery: bool = True,
+        recovery: bool = True,
         checkpoint_dir: str | Path | None = None,
         loop_detection: bool = True,
         loop_window: int = 10,
@@ -239,11 +241,21 @@ class Agent:
         self.registry = registry
         self.retry_policy = retry_policy or MODEL_RETRY_POLICY
 
-        self.enable_recovery = enable_recovery
+        # ``recovery`` is the master switch: False strips the agent down to a bare
+        # ReAct loop (no stale relocalization, page-change guard, loop detection,
+        # or crash recovery). The finer-grained flags stay available for partial
+        # control, but ``recovery=False`` folds them all off.
+        self.recovery = recovery
+        self.enable_recovery = enable_recovery and recovery
         self._checkpoint_dir = Path(checkpoint_dir) if checkpoint_dir is not None else None
-        self.loop_detector = LoopDetector(window=loop_window, threshold=loop_threshold) if loop_detection else None
+        self.loop_detector = (
+            LoopDetector(window=loop_window, threshold=loop_threshold)
+            if (loop_detection and recovery)
+            else None
+        )
         self._watchdog = crash_watchdog or CrashWatchdog()
         self.recoveries = 0
+        self.recovery_attempts = 0
         self.page_changes = 0
 
         self._budget_config = dict(
@@ -347,6 +359,7 @@ class Agent:
                 f"(enable_recovery={self.enable_recovery}, checkpoint_dir={self._checkpoint_dir})"
             )
         logger.warning("browser crash detected; recovering from %s", self._checkpoint_dir)
+        self.recovery_attempts += 1
         result = await recover(self.session, self._checkpoint_dir)
         self._watchdog.crashed = False
         self._watchdog.attach(self.session.context)
@@ -381,6 +394,7 @@ class Agent:
         self._messages = [Message(role="system", content=self._system_prompt())]
         self._history = []
         self.recoveries = 0
+        self.recovery_attempts = 0
         self.page_changes = 0
         await self._save_checkpoint()
 
@@ -402,6 +416,7 @@ class Agent:
                         stop_reason=StopReason.DONE,
                         history=self._history,
                         recoveries=self.recoveries,
+                        recovery_attempts=self.recovery_attempts,
                         page_changes=self.page_changes,
                     )
         except ModelInvalidResponseError as exc:
@@ -428,6 +443,7 @@ class Agent:
             cost_usd=self.budget.cost_usd,
             history=self._history,
             recoveries=self.recoveries,
+            recovery_attempts=self.recovery_attempts,
             page_changes=self.page_changes,
         )
 
@@ -454,7 +470,9 @@ class Agent:
         # act (with stale-element recovery + page-change guard; browser only)
         multi_action = len(actions) > 1
         fingerprint_before = (
-            self._page_fingerprint(state) if multi_action and self._supports_page_change_guard() else None
+            self._page_fingerprint(state)
+            if multi_action and self._supports_page_change_guard() and self.recovery
+            else None
         )
 
         results: list[ActionResult] = []
@@ -476,6 +494,7 @@ class Agent:
                 and result.retryable
                 and result.error_code in _STALE_ERROR_CODES
             ):
+                self.recovery_attempts += 1
                 page = self._require_page()
                 recovered = await recover_stale(action, state, page)
                 if recovered is not None:
@@ -497,7 +516,7 @@ class Agent:
 
             # Page-change guard: abort the remaining multi-action queue when the
             # page moved under us (e.g. a navigate re-rendered the whole DOM).
-            if multi_action and not is_done and self._supports_page_change_guard():
+            if multi_action and not is_done and self._supports_page_change_guard() and self.recovery:
                 after = await self._perceive()
                 if page_changed(fingerprint_before, self._page_fingerprint(after)):
                     page_changed_this_step = True

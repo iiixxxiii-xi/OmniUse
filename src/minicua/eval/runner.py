@@ -68,6 +68,7 @@ class EvalResult(BaseModel):
     cost_usd: float = 0.0
     latency_seconds: float = 0.0
     recoveries: int = 0
+    recovery_attempts: int = 0
     page_changes: int = 0
     submission: str | None = None
     error: str | None = None
@@ -158,6 +159,7 @@ def _to_eval_result(
         cost_usd=agent_result.cost_usd,
         latency_seconds=latency_seconds,
         recoveries=agent_result.recoveries,
+        recovery_attempts=agent_result.recovery_attempts,
         page_changes=agent_result.page_changes,
         submission=agent_result.submission,
         error=agent_result.error,
@@ -172,6 +174,7 @@ async def run_task(
     session: BrowserSession | None = None,
     max_steps: int | None = None,
     use_vision: str = "dom_only",
+    recovery: bool = True,
 ) -> EvalResult:
     """Run one task: setup page → agent loop → declarative evaluator → result."""
     owns_session = session is None
@@ -189,6 +192,7 @@ async def run_task(
             task=task.instruction,
             max_steps=max_steps or task.max_steps,
             use_vision=use_vision,
+            recovery=recovery,
         )
         start = time.monotonic()
         agent_result = await agent.run(task.instruction)
@@ -208,10 +212,13 @@ async def run_suite(
     *,
     max_steps: int | None = None,
     use_vision: str = "dom_only",
+    recovery: bool = True,
 ) -> SuiteResult:
     """Run every task against the same model and aggregate the six metrics."""
     results: list[EvalResult] = []
     for task in tasks:
-        results.append(await run_task(task, model, max_steps=max_steps, use_vision=use_vision))
+        results.append(
+            await run_task(task, model, max_steps=max_steps, use_vision=use_vision, recovery=recovery)
+        )
     metrics = aggregate([r.event_log for r in results], [r.score for r in results])
     return SuiteResult(results=results, metrics=metrics)

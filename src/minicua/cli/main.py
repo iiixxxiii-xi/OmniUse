@@ -1,7 +1,8 @@
-"""The minicua CLI: ``run`` (one task), ``eval`` (a task set), ``report`` (re-render)."""
+"""The minicua CLI: ``run`` (one task), ``eval`` (a task set), ``ablation`` (compare), ``report`` (re-render)."""
 
 import typer
 
+from minicua.cli.ablation import ablation_command
 from minicua.cli.chat import chat_command
 from minicua.cli.eval import eval_command
 from minicua.cli.report import report_command
@@ -15,6 +16,7 @@ app = typer.Typer(
 
 app.command("run")(run_command)
 app.command("eval")(eval_command)
+app.command("ablation")(ablation_command)
 app.command("report")(report_command)
 app.command("chat")(chat_command)
 

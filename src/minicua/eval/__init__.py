@@ -1,5 +1,6 @@
 """Eval layer: declarative evaluator, six-run metrics, task runner, and reports."""
 
+from minicua.eval.ablation import AblationResult, run_ablation
 from minicua.eval.errors import (
     EvalError,
     EvaluatorError,
@@ -16,6 +17,7 @@ from minicua.eval.runner import EvalResult, SuiteResult, run_suite, run_task
 from minicua.eval.task import TaskDef, load_task_file, load_tasks
 
 __all__ = [
+    "AblationResult",
     "EvalError",
     "EvalResult",
     "EvaluatorError",
@@ -36,6 +38,7 @@ __all__ = [
     "load_tasks",
     "render_csv",
     "render_markdown",
+    "run_ablation",
     "run_suite",
     "run_task",
     "write_report",
