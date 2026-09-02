@@ -224,3 +224,29 @@ async def test_run_ablation_replan_recovery_distinguishes_baseline_from_full():
     assert result.recovery_success_rate == 1.0
     assert result.full.results[0].recoveries == 3
     assert result.full.results[0].recovery_attempts == 3
+
+
+@pytest.mark.asyncio
+async def test_run_ablation_replan_that_fails_is_not_a_successful_recovery():
+    tasks = [_replan_task()]
+    # The model hallucinates index 999, then re-plans to index 999 again (still
+    # wrong). The re-plan fires (an attempt) but the follow-up action fails, so
+    # the recovery must NOT count as a successful recovery.
+    def model_factory() -> FakeModel:
+        return FakeModel(
+            responses=[
+                {"name": "click", "params": {"index": 999}},  # hallucinated -> re-plan
+                {"name": "click", "params": {"index": 999}},  # re-planned, still wrong
+                {"name": "done", "params": {"success": True}},
+            ]
+        )
+
+    result = await run_ablation(tasks, model_factory)
+
+    full = result.full.results[0]
+    # One recovery attempt fired, but the re-planned action failed, so it is not a
+    # successful recovery: recovery success rate must be < 100% (here, 0%).
+    assert full.recovery_attempts == 1
+    assert full.recoveries == 0
+    assert result.recovery_success_rate == 0.0
+    assert result.recovery_success_rate < 1.0

@@ -547,9 +547,10 @@ class Agent:
                 )
                 if recovered is not None:
                     logger.info("relocalized stale action %s; retrying with fresh index", action.name)
-                    recovered_this_step += 1
                     action, state = recovered
                     result = await self._execute(action, state)
+                    if result.success:
+                        recovered_this_step += 1
                 else:
                     # Relocalization failed (e.g. a hallucinated index with no old
                     # element to re-ground). Escalate: re-observe the page and let
@@ -561,11 +562,13 @@ class Agent:
                             "re-planned %d action(s) after unrelocalizable stale index",
                             len(new_actions),
                         )
-                        recovered_this_step += 1
                         # Record the failed action for observability, then execute
                         # the fresh plan. A re-planned action that itself fails is
-                        # left to the next step (no recursive re-plan).
+                        # left to the next step (no recursive re-plan). The recovery
+                        # only counts as successful if one of the re-planned actions
+                        # actually executed successfully.
                         results.append(result)
+                        re_planned_succeeded = False
                         for new_action in new_actions:
                             new_result = await self._execute(new_action, new_state)
                             results.append(new_result)
@@ -573,11 +576,16 @@ class Agent:
                                 is_done = True
                                 success = new_result.success
                                 submission = new_result.extracted
+                                if new_result.success:
+                                    re_planned_succeeded = True
                                 break
                             if new_result.success:
+                                re_planned_succeeded = True
                                 self.budget.reset_failures()
                             else:
                                 self.budget.record_failure()
+                        if re_planned_succeeded:
+                            recovered_this_step += 1
                         # Abandon any remaining original actions: they were grounded
                         # on the pre-replan DOM, which has since changed.
                         break
