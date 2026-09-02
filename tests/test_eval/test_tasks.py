@@ -1,11 +1,11 @@
 """The self-contained browser task set (``tasks/*.json``).
 
 These tests lock the task set in: it must load cleanly, have a sane size
-(15-40 tasks), carry unique ids, span all three difficulty tiers, reference only
+(15-50 tasks), carry unique ids, span all three difficulty tiers, reference only
 known getters/metrics, and serve every inline fixture on a real origin — proving
-the declarative fixtures + evaluators actually describe a reachable goal. Two
-end-to-end tests script a :class:`FakeModel` through a basic and a long-horizon
-task to show the evaluator truly distinguishes "solved" from "not solved".
+the declarative fixtures + evaluators actually describe a reachable goal. Several
+end-to-end tests script a :class:`FakeModel` through representative tasks to show
+the evaluator truly distinguishes "solved" from "not solved".
 """
 
 from pathlib import Path
@@ -29,7 +29,7 @@ def _load() -> list:
 
 def test_task_set_size():
     tasks = _load()
-    assert 15 <= len(tasks) <= 40
+    assert 15 <= len(tasks) <= 50
 
 
 def test_task_ids_unique():
@@ -129,6 +129,44 @@ async def test_solve_rerender_reshuffle_end_to_end(session):
             {"name": "click", "params": {"index": 1}},  # Alpha
             {"name": "click", "params": {"index": 1}},  # Beta  (now index 1)
             {"name": "click", "params": {"index": 1}},  # Gamma (now index 1)
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    result = await run_task(task, model, session=session)
+    assert result.success is True
+    assert result.score == 1.0
+
+
+@pytest.mark.asyncio
+async def test_solve_sort_toggle_rerender_end_to_end(session):
+    # The sort toggle reorders the list buttons; a model that re-reads the fresh
+    # DOM after the sort (rather than caching the pre-sort index) clicks 'Zulu'.
+    task = next(t for t in _load() if t.id == "sort_toggle_rerender")
+    model = FakeModel(
+        responses=[
+            {"name": "click", "params": {"index": 1}},  # Sort descending
+            {"name": "click", "params": {"index": 2}},  # Zulu (now the top item)
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    result = await run_task(task, model, session=session)
+    assert result.success is True
+    assert result.score == 1.0
+
+
+@pytest.mark.asyncio
+async def test_solve_dynamic_form_rows_end_to_end(session):
+    # Adding fields shifts every subsequent element's index, so the model must
+    # re-read the DOM after each add before typing / submitting.
+    task = next(t for t in _load() if t.id == "dynamic_form_rows")
+    model = FakeModel(
+        responses=[
+            {"name": "click", "params": {"index": 1}},  # Add field
+            {"name": "click", "params": {"index": 1}},  # Add field (now 3 inputs)
+            {"name": "type", "params": {"index": 2, "text": "one"}},
+            {"name": "type", "params": {"index": 3, "text": "two"}},
+            {"name": "type", "params": {"index": 4, "text": "three"}},
+            {"name": "click", "params": {"index": 5}},  # Submit
             {"name": "done", "params": {"success": True}},
         ]
     )

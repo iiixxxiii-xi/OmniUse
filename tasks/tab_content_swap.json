@@ -1,0 +1,11 @@
+{
+  "id": "tab_content_swap",
+  "difficulty": "medium",
+  "instruction": "Switch to the third tab (Tab C); the panel re-renders with new content on every tab click. Confirm the panel shows 'Gamma content - FINAL'.",
+  "html": "<div id=\"tabs\"><button data-tab=\"a\">Tab A</button><button data-tab=\"b\">Tab B</button><button data-tab=\"c\">Tab C</button></div><div id=\"panel\"></div><script>var content={a:'Alpha content',b:'Beta content',c:'Gamma content - FINAL'};document.getElementById('tabs').addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;document.getElementById('panel').textContent=content[b.getAttribute('data-tab')];});</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#panel" },
+    "expected": { "expected": "Gamma content - FINAL" }
+  }
+}

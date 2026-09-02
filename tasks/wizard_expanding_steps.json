@@ -1,0 +1,11 @@
+{
+  "id": "wizard_expanding_steps",
+  "difficulty": "hard",
+  "instruction": "Complete the wizard: type 'Alice' into the Name field, click Next, type 'alice@example.com' into the Email field, click Next, then click Submit. Each step re-renders the page and the buttons shift position, so re-read before each click. Finish when 'Submitted: Alice alice@example.com' appears.",
+  "html": "<div id=\"wizard\"></div><div id=\"done\"></div><script>var step=1;var name='';var email='';var w=document.getElementById('wizard');function render(){var s='';if(step===1){s+='<input id=\"name\" placeholder=\"Name\">';s+='<button>Next</button>';}else if(step===2){s+='<input id=\"email\" placeholder=\"Email\">';s+='<button>Back</button><button>Next</button>';}else{s+='<button>Back</button><button>Submit</button>';}w.innerHTML=s;}w.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var t=b.textContent.trim();if(step===1&&t==='Next'){name=document.getElementById('name').value;step=2;render();}else if(step===2&&t==='Back'){step=1;render();}else if(step===2&&t==='Next'){email=document.getElementById('email').value;step=3;render();}else if(step===3&&t==='Back'){step=2;render();}else if(step===3&&t==='Submit'){document.getElementById('done').textContent='Submitted: '+name+' '+email;}});render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#done" },
+    "expected": { "expected": "Submitted: Alice alice@example.com" }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "id": "async_streaming_feed",
+  "difficulty": "hard",
+  "instruction": "Wait for the feed to finish streaming in all its posts, then confirm the status shows 'All 4 posts loaded'.",
+  "html": "<div id=\"feed\"></div><div id=\"status\"></div><script>var posts=['Post 1','Post 2','Post 3','Post 4'];var i=0;var feed=document.getElementById('feed');function push(){if(i<posts.length){var d=document.createElement('div');d.textContent=posts[i];feed.appendChild(d);i++;if(i===posts.length){document.getElementById('status').textContent='All '+posts.length+' posts loaded';}}}push();var timer=setInterval(function(){push();if(i===posts.length){clearInterval(timer);}},400);</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#status" },
+    "expected": { "expected": "All 4 posts loaded" }
+  }
+}

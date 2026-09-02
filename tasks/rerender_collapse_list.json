@@ -1,0 +1,11 @@
+{
+  "id": "rerender_collapse_list",
+  "difficulty": "hard",
+  "instruction": "Remove Red, Green, and Blue one at a time by clicking their buttons (the list collapses and the remaining items shift after every click), leaving only Gold. Finish when 'Remaining: Gold | Removed: Red, Green, Blue' appears.",
+  "html": "<div id=\"list\"></div><div id=\"log\"></div><script>var items=['Red','Green','Blue','Gold'];var removed=[];var list=document.getElementById('list');function render(){list.innerHTML=items.map(function(n){return '<button>'+n+'</button>';}).join('');}list.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;var n=b.textContent;removed.push(n);items=items.filter(function(x){return x!==n;});render();if(items.length===1){document.getElementById('log').textContent='Remaining: '+items[0]+' | Removed: '+removed.join(', ');}});render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#log" },
+    "expected": { "expected": "Remaining: Gold | Removed: Red, Green, Blue" }
+  }
+}

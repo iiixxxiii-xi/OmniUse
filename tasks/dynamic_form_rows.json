@@ -1,0 +1,11 @@
+{
+  "id": "dynamic_form_rows",
+  "difficulty": "hard",
+  "instruction": "Click 'Add field' twice so there are three input fields, then type 'one', 'two', 'three' into them in order, then click Submit. The form re-renders as fields are added, so re-read before each action. Finish when '3 values: one, two, three' appears.",
+  "html": "<button id=\"add\" onclick=\"addRow()\">Add field</button><div id=\"rows\"><input class=\"row\" placeholder=\"value\"></div><button id=\"submit\" onclick=\"submitRows()\">Submit</button><div id=\"out\"></div><script>function addRow(){var i=document.createElement('input');i.className='row';i.placeholder='value';document.getElementById('rows').appendChild(i);}function submitRows(){var vals=[];document.querySelectorAll('#rows input').forEach(function(x){vals.push(x.value);});document.getElementById('out').textContent=vals.length+' values: '+vals.join(', ');}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "3 values: one, two, three" }
+  }
+}

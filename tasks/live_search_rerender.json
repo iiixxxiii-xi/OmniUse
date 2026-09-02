@@ -1,0 +1,11 @@
+{
+  "id": "live_search_rerender",
+  "difficulty": "medium",
+  "instruction": "Type 'ba' into the search box; the list re-renders live on each keystroke. Then click the 'banana' result and confirm 'Selected: banana' appears.",
+  "html": "<input id=\"q\" placeholder=\"Search\"><ul id=\"list\"></ul><div id=\"out\"></div><script>var items=['apple','banana','cherry','blueberry'];var q=document.getElementById('q');var list=document.getElementById('list');function render(){list.innerHTML='';items.filter(function(x){return x.indexOf(q.value.toLowerCase())>=0;}).forEach(function(x){var li=document.createElement('li');var b=document.createElement('button');b.textContent=x;li.appendChild(b);list.appendChild(li);});}q.addEventListener('input',render);list.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;document.getElementById('out').textContent='Selected: '+b.textContent;});render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Selected: banana" }
+  }
+}

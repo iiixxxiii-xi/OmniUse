@@ -1,0 +1,11 @@
+{
+  "id": "sort_toggle_rerender",
+  "difficulty": "hard",
+  "instruction": "Click 'Sort descending' to reorder the list, then click the top item 'Zulu'. The list re-renders after the sort, so re-read before clicking. Confirm 'Clicked: Zulu' appears.",
+  "html": "<button id=\"sort\" onclick=\"toggleSort()\">Sort descending</button><div id=\"list\"></div><div id=\"out\"></div><script>var items=['Zulu','Alpha','Mike','Echo'];var desc=false;var list=document.getElementById('list');var sortBtn=document.getElementById('sort');function render(){var order=items.slice().sort();if(desc){order.reverse();}list.innerHTML=order.map(function(n){return '<button>'+n+'</button>';}).join('');}function toggleSort(){desc=!desc;sortBtn.textContent=desc?'Sort ascending':'Sort descending';render();}list.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;document.getElementById('out').textContent='Clicked: '+b.textContent;});render();</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Clicked: Zulu" }
+  }
+}
