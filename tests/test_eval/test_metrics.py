@@ -47,6 +47,16 @@ def test_exact_match_missing_expected_raises():
         exact_match("a.com", {})
 
 
+def test_exact_match_trims_whitespace():
+    # Shell/DOM getters often return a trailing newline that the task author may
+    # not include in `expected` (or vice versa); trim both sides before comparing.
+    assert exact_match("100\n", {"expected": "100"}) == 1.0
+    assert exact_match("100", {"expected": "100\n"}) == 1.0
+    assert exact_match("true\n", {"expected": "true\n"}) == 1.0
+    assert exact_match(" a.com ", {"expected": "a.com"}) == 1.0
+    assert exact_match("100", {"expected": "101"}) == 0.0
+
+
 # --------------------------------------------------------------------------- #
 # contains
 # --------------------------------------------------------------------------- #

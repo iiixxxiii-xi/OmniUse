@@ -39,13 +39,22 @@ def _score(cond: bool) -> float:
 
 
 def exact_match(actual: Any, rule: dict[str, Any]) -> float:
-    """``actual == expected`` (optionally case-insensitive for strings)."""
+    """``actual == expected``; string values are whitespace-trimmed first.
+
+    Shell and DOM getters routinely return a trailing newline that a task author
+    may or may not reproduce in ``expected``, so both sides are stripped before a
+    string comparison (``ignore_case`` still applies after trimming). Non-string
+    values compare exactly.
+    """
     _require(rule, "expected")
     expected = rule["expected"]
     if actual is None:
         return 0.0
-    if rule.get("ignore_case") and isinstance(actual, str) and isinstance(expected, str):
-        return _score(actual.casefold() == expected.casefold())
+    if isinstance(actual, str) and isinstance(expected, str):
+        a, e = actual.strip(), expected.strip()
+        if rule.get("ignore_case"):
+            return _score(a.casefold() == e.casefold())
+        return _score(a == e)
     return _score(actual == expected)
 
 
