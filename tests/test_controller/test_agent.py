@@ -202,3 +202,93 @@ async def test_agent_surfaces_unexpected_error(session):
     assert result.done is False
     assert result.stop_reason == StopReason.ERROR
     assert "RuntimeError" in result.error
+
+
+# --------------------------------------------------------------------------- #
+# completion verifier (done-before-termination)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.asyncio
+async def test_agent_verifier_rejects_premature_done(session):
+    # A claimed success is a claim, not ground truth: the first done is rejected
+    # by the verifier, the model is fed the rejection and keeps going, and the
+    # second done (now genuinely satisfied) is accepted.
+    calls = []
+
+    def verifier():
+        calls.append(1)
+        return (len(calls) >= 2, "goal not met yet")
+
+    model = FakeModel(
+        responses=[
+            {"name": "done", "params": {"success": True}},
+            {"name": "done", "params": {"success": True}},
+        ]
+    )
+    agent = Agent(session=session, model=model, verifier=verifier, max_steps=10)
+    result = await agent.run(task="finish")
+
+    assert result.done is True
+    assert result.success is True
+    assert result.steps == 2  # first done rejected, second accepted
+    assert len(calls) == 2
+
+    # The rejection must have been fed back to the model between the two dones.
+    second_call_messages = model.calls[1][0]
+    observations = [m.content for m in second_call_messages if m.role == "user"]
+    assert any("rejected" in text for text in observations)
+
+
+@pytest.mark.asyncio
+async def test_agent_verifier_accepts_done(session):
+    def verifier():
+        return True, ""
+
+    model = FakeModel(responses=[{"name": "done", "params": {"success": True}}])
+    agent = Agent(session=session, model=model, verifier=verifier)
+    result = await agent.run(task="finish")
+    assert result.done is True
+    assert result.success is True
+    assert result.steps == 1
+
+
+@pytest.mark.asyncio
+async def test_agent_async_verifier(session):
+    async def verifier():
+        return True, ""
+
+    model = FakeModel(responses=[{"name": "done", "params": {"success": True}}])
+    agent = Agent(session=session, model=model, verifier=verifier)
+    result = await agent.run(task="finish")
+    assert result.done is True
+    assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_agent_verifier_exception_degrades_to_accept(session):
+    # A broken verifier must never hang or crash the loop: it degrades to
+    # accepting the agent's own done claim.
+    def verifier():
+        raise RuntimeError("verifier broken")
+
+    model = FakeModel(responses=[{"name": "done", "params": {"success": True}}])
+    agent = Agent(session=session, model=model, verifier=verifier)
+    result = await agent.run(task="finish")
+    assert result.done is True
+    assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_agent_verifier_rejected_then_budget_exhausted(session):
+    # A verifier that always rejects keeps the agent in the loop until the step
+    # budget runs out, at which point the run ends as MAX_STEPS (not a false DONE).
+    def verifier():
+        return False, "still not done"
+
+    model = FakeModel(responses=[{"name": "done", "params": {"success": True}}] * 10)
+    agent = Agent(session=session, model=model, verifier=verifier, max_steps=3)
+    result = await agent.run(task="finish")
+    assert result.done is False
+    assert result.stop_reason == StopReason.MAX_STEPS
+    assert result.steps == 3

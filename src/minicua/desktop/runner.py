@@ -7,7 +7,7 @@ The only "success" signal is the agent's own ``done`` action.
 """
 
 import logging
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import BaseModel, Field
 
@@ -34,14 +34,19 @@ async def run_desktop(
     model: ChatModel,
     *,
     environment: Any = None,
-    max_steps: int = 20,
+    max_steps: int = 50,
     use_vision: str = "vision",
+    verifier: Callable[[], Any] | None = None,
 ) -> DesktopRunResult:
     """Run ``instruction`` against the desktop and return a structured result.
 
     ``environment`` may be injected for tests; otherwise a real
     :class:`DesktopEnvironment` is used. A run never raises for a *task* failure
     (a model error or a budget limit becomes ``success=False`` + ``error``).
+
+    ``verifier`` is an optional completion verifier ``() -> (ok, feedback)`` (sync
+    or async) that independently checks the *actual* environment state before a
+    ``done`` is accepted — the OSWorld-style answer to premature "false done".
     """
     env = environment if environment is not None else DesktopEnvironment()
     agent = Agent(
@@ -51,6 +56,7 @@ async def run_desktop(
         task=instruction,
         max_steps=max_steps,
         use_vision=use_vision,
+        verifier=verifier,
     )
     result = await agent.run(instruction)
     return DesktopRunResult(

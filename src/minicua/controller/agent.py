@@ -22,10 +22,11 @@ The agent does **not** own the browser session — the caller starts/closes it. 
 run is bounded by :class:`Budget` (steps / failures / tokens / cost / timeout).
 """
 
+import inspect
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -233,6 +234,7 @@ class Agent:
         loop_threshold: int = 5,
         crash_watchdog: CrashWatchdog | None = None,
         memory: TaskMemory | None = None,
+        verifier: Callable[[], Any] | None = None,
     ) -> None:
         if mode not in ("browser", "desktop"):
             raise ValueError(f"unknown agent mode {mode!r}; expected 'browser' or 'desktop'")
@@ -246,6 +248,7 @@ class Agent:
         self.max_actions_per_step = max_actions_per_step
         self.replan_on_stall = replan_on_stall
         self._memory = memory
+        self._verifier = verifier
         if registry is None:
             registry = get_desktop_registry() if self.mode == "desktop" else get_default_registry()
         self.registry = registry
@@ -350,6 +353,27 @@ class Agent:
         params = action.params
         self._memory.remember(params.text, params.tags)
         return ActionResult.ok(f"Remembered: {params.text}")
+
+    async def _verify_completion(self) -> tuple[bool, str]:
+        """Run the external completion verifier on a claimed success.
+
+        Returns ``(ok, feedback)``. The verifier inspects the *actual* environment
+        state, independent of the model's ``done`` claim, so a premature ``done``
+        that declares success while the goal is unmet is caught here. A verifier
+        that raises (or is absent) degrades to ``(True, "")`` so a broken verifier
+        can never hang or crash the loop.
+        """
+        if self._verifier is None:
+            return True, ""
+        try:
+            verdict = self._verifier()
+            if inspect.isawaitable(verdict):
+                verdict = await verdict
+            ok, feedback = verdict
+            return bool(ok), str(feedback or "")
+        except Exception as exc:  # noqa: BLE001 - verifier failure is data, not a hang
+            logger.warning("completion verifier failed (%s); accepting the agent's done", exc)
+            return True, ""
 
     def _build_state_message(self, state: Any) -> Message:
         """Render a perceived state into a user message (mode-aware)."""
@@ -640,10 +664,36 @@ class Agent:
 
             results.append(result)
             if action.name == "done":
-                is_done = True
-                success = result.success
-                submission = result.extracted
-                break  # done terminates; ignore any further actions
+                # A claimed success is a claim, not ground truth: run the external
+                # verifier (when configured) before accepting it. A premature done
+                # that fails verification is rejected and fed back so the model
+                # keeps working; the rejected done still ends the action queue.
+                accept = True
+                if result.success and self._verifier is not None:
+                    ok, feedback = await self._verify_completion()
+                    if not ok:
+                        accept = False
+                        result = ActionResult.fail(
+                            f"completion not verified: {feedback or 'goal unmet'}",
+                            error_code=ActionError.EXECUTION_FAILED,
+                        )
+                        results[-1] = result
+                        self._messages.append(
+                            Message(
+                                role="user",
+                                content=(
+                                    "Your 'done' was rejected: the task goal is not yet met. "
+                                    f"Current state: {feedback}. Continue until it is complete, "
+                                    "then call 'done' again."
+                                ),
+                            )
+                        )
+                        self.budget.record_failure()
+                if accept:
+                    is_done = True
+                    success = result.success
+                    submission = result.extracted
+                break  # done always ends the action queue
             if result.success:
                 self.budget.reset_failures()
             else:
