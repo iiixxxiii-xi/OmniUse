@@ -44,6 +44,10 @@ ACTION_DESCRIPTIONS: dict[str, str] = {
     "press": "Send a keyboard key or chord (e.g. 'Enter', 'Control+A').",
     "wait": "Wait for a number of seconds (lets the page settle).",
     "done": "Signal task completion with an optional textual submission.",
+    "remember": (
+        "Persist a useful fact to task-level memory (so later tasks can recall it). "
+        "Use for things you'd want to know next time, e.g. where a button is."
+    ),
 }
 
 

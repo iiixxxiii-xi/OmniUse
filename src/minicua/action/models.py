@@ -117,13 +117,20 @@ class DoneParams(BaseModel):
     submission: str | None = Field(default=None, description="Optional final answer / result text.")
 
 
+class RememberParams(BaseModel):
+    """Persist a fact to task-level memory for recall in later tasks."""
+
+    text: str = Field(min_length=1, description="The fact to remember.")
+    tags: list[str] = Field(default_factory=list, description="Optional tags for later recall.")
+
+
 # --------------------------------------------------------------------------- #
 # Action union
 # --------------------------------------------------------------------------- #
 
 ActionName = Literal[
     "click", "type", "select", "scroll", "navigate", "go_back",
-    "switch_tab", "press", "wait", "done",
+    "switch_tab", "press", "wait", "done", "remember",
 ]
 
 #: name -> parameter schema, the single source of truth for the action set.
@@ -138,6 +145,7 @@ PARAM_MODELS: dict[str, type[BaseModel]] = {
     "press": PressParams,
     "wait": WaitParams,
     "done": DoneParams,
+    "remember": RememberParams,
 }
 
 ACTION_NAMES: frozenset[str] = frozenset(PARAM_MODELS)
@@ -156,6 +164,7 @@ ActionParams = (
     | PressParams
     | WaitParams
     | DoneParams
+    | RememberParams
 )
 
 

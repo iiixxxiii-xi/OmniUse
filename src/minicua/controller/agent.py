@@ -53,6 +53,7 @@ from minicua.perception.dom import BrowserState
 from minicua.perception.extract import extract_state
 from minicua.recovery.crash import STORAGE_STATE_FILENAME, RecoveryCheckpoint, recover, save_checkpoint
 from minicua.recovery.loop import LoopDetector
+from minicua.state.memory import TaskMemory
 from minicua.recovery.page_change import PageFingerprint, page_changed
 from minicua.recovery.stale import recover_stale
 
@@ -231,6 +232,7 @@ class Agent:
         loop_window: int = 10,
         loop_threshold: int = 5,
         crash_watchdog: CrashWatchdog | None = None,
+        memory: TaskMemory | None = None,
     ) -> None:
         if mode not in ("browser", "desktop"):
             raise ValueError(f"unknown agent mode {mode!r}; expected 'browser' or 'desktop'")
@@ -243,6 +245,7 @@ class Agent:
         self.max_requeries = max_requeries if recovery else 0
         self.max_actions_per_step = max_actions_per_step
         self.replan_on_stall = replan_on_stall
+        self._memory = memory
         if registry is None:
             registry = get_desktop_registry() if self.mode == "desktop" else get_default_registry()
         self.registry = registry
@@ -330,16 +333,39 @@ class Agent:
 
     async def _execute(self, action: Action, state: Any) -> ActionResult:
         """Run one validated action against the active environment."""
+        if action.name == "remember":
+            return self._remember(action)
         if self._is_desktop():
             return await execute_desktop(action, self.environment, state)
         page = self._require_page()
         return await execute(action, page, state)
+
+    def _remember(self, action: Action) -> ActionResult:
+        """Persist a ``remember`` action into task-level memory (no browser work)."""
+        if self._memory is None:
+            return ActionResult.fail(
+                "task-level memory is not configured",
+                error_code=ActionError.EXECUTION_FAILED,
+            )
+        params = action.params
+        self._memory.remember(params.text, params.tags)
+        return ActionResult.ok(f"Remembered: {params.text}")
 
     def _build_state_message(self, state: Any) -> Message:
         """Render a perceived state into a user message (mode-aware)."""
         if self._is_desktop():
             return _build_desktop_state_message(state)
         return _build_state_message(state)
+
+    def _memory_message(self) -> Message | None:
+        """Return a user message carrying prior task-level memory, or ``None``."""
+        if self._memory is None or len(self._memory) == 0:
+            return None
+        facts = "\n".join(f"- {fact.text}" for fact in self._memory.recall())
+        return Message(
+            role="user",
+            content=f"Relevant memory from previous tasks:\n{facts}",
+        )
 
     def _supports_stale_recovery(self) -> bool:
         """Stale-element relocalization is browser-only (index grounding)."""
@@ -449,6 +475,9 @@ class Agent:
         self.budget = self._new_budget()
         self.budget.start()
         self._messages = [Message(role="system", content=self._system_prompt())]
+        memory_msg = self._memory_message()
+        if memory_msg is not None:
+            self._messages.append(memory_msg)
         self._history = []
         self.recoveries = 0
         self.recovery_attempts = 0
