@@ -328,8 +328,19 @@ async def _shell(params: DesktopShellParams, env: Any, state: Any = None) -> Act
             f"shell command {params.command!r} exited with code {result.returncode}: {result.stderr}",
             error_code=ActionError.SHELL_FAILED,
         )
+    # Surface the command's stdout in the ``extracted`` summary (the field the
+    # controller feeds back to the model as its observation). Without it the
+    # model only sees "Ran command (exit 0)" and cannot act on the output, so
+    # shell-driven desktop tasks go blind and loop re-running the same probe.
+    out = (result.stdout or "").strip()
+    err = (result.stderr or "").strip()
+    summary = "Ran command (exit 0)"
+    if out:
+        summary += "\nstdout:\n" + out[:4000]
+    if err:
+        summary += "\nstderr:\n" + err[:2000]
     return ActionResult.ok(
-        f"Ran command (exit 0)",
+        summary,
         command=params.command,
         returncode=result.returncode,
         stdout=result.stdout,

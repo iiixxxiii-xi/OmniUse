@@ -174,6 +174,16 @@ async def test_execute_shell_success():
 
 
 @pytest.mark.asyncio
+async def test_execute_shell_surfaces_stdout_in_extracted():
+    env = FakeEnv(shell=ShellResult(returncode=0, stdout="poster_party_night.webp\n"))
+    res = await execute_desktop(DesktopAction(name="shell", params={"command": "ls"}), env)
+    assert res.success is True
+    # The model must see the command's stdout in the observation, not just
+    # "Ran command (exit 0)" — otherwise shell-driven tasks go blind and loop.
+    assert "poster_party_night.webp" in (res.extracted or "")
+
+
+@pytest.mark.asyncio
 async def test_execute_shell_nonzero_returns_shell_failed():
     env = FakeEnv(shell=ShellResult(returncode=2, stderr="nope"))
     res = await execute_desktop(DesktopAction(name="shell", params={"command": "false"}), env)
