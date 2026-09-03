@@ -1,0 +1,148 @@
+"""SSH-driven VM desktop environment (for OSWorld-style evaluation).
+
+``SSHVmEnvironment`` implements the same surface as
+:class:`~minicua.desktop.env.DesktopEnvironment` — ``screenshot``, ``screen_size``,
+mouse, keyboard, scroll and shell — but every call is forwarded over SSH to a
+short ``pyautogui`` snippet running *inside* the guest with ``DISPLAY`` set. The
+agent loop can therefore drive a headless VM exactly as it drives a local
+desktop, with no other changes.
+
+The SSH client is a persistent :class:`paramiko.SSHClient` (reused across calls)
+so a task's many small actions don't pay a fresh handshake each time.
+"""
+
+from __future__ import annotations
+
+import logging
+import shlex
+import subprocess
+from typing import Any
+
+logger = logging.getLogger("minicua.desktop.ssh_vm")
+
+#: A subprocess.run-compatible callable (injectable for tests).
+SubprocessRunner = Any
+
+
+class SSHVmEnvironment:
+    """Control a remote VM's desktop over SSH (pyautogui runs inside the guest)."""
+
+    def __init__(
+        self,
+        host: str,
+        user: str,
+        password: str,
+        *,
+        port: int = 22,
+        display: str = ":0",
+        screen_size: tuple[int, int] = (1920, 1080),
+        connect_timeout: float = 15.0,
+    ) -> None:
+        self._host = host
+        self._user = user
+        self._password = password
+        self._port = port
+        self._display = display
+        self._screen_size = screen_size
+        self._connect_timeout = connect_timeout
+        self._client = self._connect()
+
+    def _connect(self):
+        import paramiko
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(
+            self._host,
+            port=self._port,
+            username=self._user,
+            password=self._password,
+            timeout=self._connect_timeout,
+        )
+        return client
+
+    def _run(self, code: str) -> str:
+        """Run ``code`` inside the guest's Python (DISPLAY set); return stdout."""
+        cmd = f"DISPLAY={self._display} python3 -c {shlex.quote(code)}"
+        try:
+            _, out, _ = self._client.exec_command(cmd)
+            return out.read().decode("utf-8", "replace")
+        except Exception as exc:  # noqa: BLE001 - a dead SSH channel is recoverable
+            logger.warning("SSH command failed (%s); reconnecting", exc)
+            try:
+                self._client.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self._client = self._connect()
+            _, out, _ = self._client.exec_command(cmd)
+            return out.read().decode("utf-8", "replace")
+
+    def close(self) -> None:
+        try:
+            self._client.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+    # -- screenshot ---------------------------------------------------------
+
+    def screenshot(self) -> str | None:
+        """Return the guest screen as base64 PNG, or ``None`` on failure."""
+        code = (
+            "import pyautogui, base64, io;"
+            "img=pyautogui.screenshot();"
+            "buf=io.BytesIO();img.save(buf,'PNG');"
+            "print(base64.b64encode(buf.getvalue()).decode())"
+        )
+        out = self._run(code)
+        return out.strip() or None
+
+    def screen_size(self) -> tuple[int, int]:
+        return self._screen_size
+
+    # -- mouse --------------------------------------------------------------
+
+    def click(self, x: int, y: int) -> None:
+        self._run(f"import pyautogui;pyautogui.click({x},{y})")
+
+    def move_to(self, x: int, y: int) -> None:
+        self._run(f"import pyautogui;pyautogui.moveTo({x},{y})")
+
+    def double_click(self, x: int, y: int) -> None:
+        self._run(f"import pyautogui;pyautogui.doubleClick({x},{y})")
+
+    def right_click(self, x: int, y: int) -> None:
+        self._run(f"import pyautogui;pyautogui.rightClick({x},{y})")
+
+    def drag(self, x1: int, y1: int, x2: int, y2: int) -> None:
+        self._run(f"import pyautogui;pyautogui.moveTo({x1},{y1});pyautogui.dragTo({x2},{y2},button='left')")
+
+    # -- keyboard -----------------------------------------------------------
+
+    def type_text(self, text: str) -> None:
+        self._run(f"import pyautogui;pyautogui.typewrite({text!r})")
+
+    def press(self, key: str) -> None:
+        self._run(f"import pyautogui;pyautogui.press({key!r})")
+
+    def hotkey(self, *keys: str) -> None:
+        self._run(f"import pyautogui;pyautogui.hotkey({', '.join(repr(k) for k in keys)})")
+
+    def scroll(self, amount: int) -> None:
+        # positive amount scrolls down (matches DesktopEnvironment semantics)
+        self._run(f"import pyautogui;pyautogui.scroll({-amount})")
+
+    # -- shell --------------------------------------------------------------
+
+    def run_shell(self, command: str, *, timeout: float | None = 30.0) -> Any:
+        """Run a command over SSH and return a small structured result."""
+        from minicua.desktop.env import ShellResult
+
+        try:
+            _, out, err = self._client.exec_command(command, timeout=timeout)
+            return ShellResult(
+                returncode=out.channel.recv_exit_status(),
+                stdout=out.read().decode("utf-8", "replace"),
+                stderr=err.read().decode("utf-8", "replace"),
+            )
+        except Exception as exc:  # noqa: BLE001 - shell failures are data
+            return ShellResult(returncode=-1, stderr=f"{type(exc).__name__}: {exc}")
