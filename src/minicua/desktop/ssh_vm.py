@@ -44,6 +44,7 @@ class SSHVmEnvironment:
         self._port = port
         self._display = display
         self._screen_size = screen_size
+        self._real_screen_size: tuple[int, int] | None = None
         self._connect_timeout = connect_timeout
         self._client = self._connect()
 
@@ -97,7 +98,27 @@ class SSHVmEnvironment:
         return out.strip() or None
 
     def screen_size(self) -> tuple[int, int]:
-        return self._screen_size
+        """Return the guest's *real* screen size, queried over SSH (cached).
+
+        A headless VM's native resolution often differs from the constructor hint
+        (e.g. this VM is 730x624, not 1920x1080), and a hardcoded size makes every
+        coordinate the model predicts drift off-target. Query pyautogui once and
+        cache it; fall back to the hint only if the query fails.
+        """
+        if self._real_screen_size is not None:
+            return self._real_screen_size
+        out = self._run("import pyautogui;s=pyautogui.size();print(s.width,s.height)")
+        try:
+            w, h = out.strip().split()
+            self._real_screen_size = (int(w), int(h))
+        except (ValueError, AttributeError):
+            logger.warning(
+                "failed to query guest screen size (%r); using hint %s",
+                out,
+                self._screen_size,
+            )
+            self._real_screen_size = self._screen_size
+        return self._real_screen_size
 
     # -- mouse --------------------------------------------------------------
 
