@@ -12,3 +12,4 @@ htmlcov/
 
 .env
 out/
+tmp/

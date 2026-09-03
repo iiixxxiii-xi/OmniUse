@@ -30,6 +30,25 @@ def test_resolve_model_deepseek_default_base_url(monkeypatch):
     assert m.base_url == "https://api.deepseek.com"
 
 
+def test_resolve_model_deepseek_vision(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deep")
+    m = resolve_model("deepseek/deepseek-v4-flash-vision-exp")
+    assert isinstance(m, OpenAIModel)
+    assert m.model == "deepseek-v4-flash-vision-exp"
+    assert m.supports_vision is True
+    # reasoning head off (so tool_choice="required" is accepted) + forced tool call
+    assert m.extra_body == {"thinking": {"type": "disabled"}}
+    assert m.tool_choice == "required"
+
+
+def test_resolve_model_deepseek_v4_text_not_vision(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deep")
+    m = resolve_model("deepseek/deepseek-v4-flash")
+    assert m.supports_vision is False
+    assert m.extra_body == {"thinking": {"type": "disabled"}}
+    assert m.tool_choice == "required"
+
+
 def test_resolve_model_dashscope_vision(monkeypatch):
     monkeypatch.setenv("DASHSCOPE_API_KEY", "sk-dash")
     m = resolve_model("dashscope/qwen3-vl-flash")

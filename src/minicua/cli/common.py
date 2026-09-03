@@ -64,20 +64,26 @@ def resolve_model(model_id: str) -> ChatModel:
         api_key = os.environ.get("DEEPSEEK_API_KEY")
         if not api_key:
             raise ValueError("deepseek model selected but DEEPSEEK_API_KEY is not set (check .env)")
+        # DeepSeek's vision models (``deepseek-v4-flash-vision-exp``) ride the
+        # same OpenAI-compatible endpoint and key as the text models; the name
+        # carries the ``vision`` marker.
+        is_vision = "vision" in name or "vl" in name
         return OpenAIModel(
             model=name,
             base_url=os.environ.get("DEEPSEEK_BASE_URL", DEEPSEEK_BASE_URL),
             api_key=api_key,
-            supports_vision=False,
+            supports_vision=is_vision,
             # DeepSeek V4 models are reasoning models: their chain-of-thought
             # tokens share the same output budget as tool calls. A low ceiling
             # truncates the response before the model emits any tool call
             # ("no tool calls"), so give the reasoning head room to breathe.
             max_tokens=8192,
             # Disable the reasoning/thinking head for V4 models: with thinking
-            # on, the model narrates its plan into ``content`` instead of
-            # actually emitting tool calls on long multi-step tasks. Combine
-            # with a forced tool call so it can never "narrate instead of act".
+            # on, the model narrates its plan into ``reasoning_content`` instead
+            # of actually emitting tool calls on long multi-step tasks, and it
+            # rejects ``tool_choice="required"`` ("Thinking mode does not support
+            # this tool_choice"). Combine with a forced tool call so it can never
+            # "narrate instead of act".
             extra_body={"thinking": {"type": "disabled"}} if "v4" in name else None,
             tool_choice="required" if "v4" in name else None,
         )
@@ -96,6 +102,10 @@ def resolve_model(model_id: str) -> ChatModel:
             # output budget with tool calls, so the default 4096 ceiling truncates
             # it before it emits the tool call.
             max_tokens=8192,
+            # On hard multi-step tasks qwen3-vl otherwise narrates its plan into
+            # ``content`` instead of emitting a tool call ("no tool calls").
+            # Force a tool call every turn, mirroring the deepseek-v4 fix.
+            tool_choice="required",
         )
 
     raise ValueError(
