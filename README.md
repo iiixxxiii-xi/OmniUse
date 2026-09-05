@@ -62,7 +62,7 @@ minicua                              # 直接进对话，auto 模式自动判断
 > exit
 ```
 
-默认视觉模型 `qwen3-vl-flash`；想强制指定加 `--mode browser` 或 `--mode desktop`。
+默认视觉模型 `deepseek-v4-flash-vision-exp`；想强制指定加 `--mode browser` 或 `--mode desktop`。
 
 ```bash
 minicua run tasks/click_button.json --script script.json   # 单任务

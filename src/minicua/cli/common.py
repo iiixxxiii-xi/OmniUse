@@ -26,7 +26,7 @@ def require_vision_model(model: ChatModel, mode: str) -> None:
     """
     if mode in ("desktop", "auto") and not getattr(model, "supports_vision", False):
         raise ValueError(
-            "desktop/auto mode requires a vision model (e.g. --model dashscope/qwen3-vl-flash); "
+            "desktop/auto mode requires a vision model (e.g. --model deepseek/deepseek-v4-flash-vision-exp); "
             "the selected model does not support vision"
         )
 

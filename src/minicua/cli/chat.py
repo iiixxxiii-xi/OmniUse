@@ -74,9 +74,9 @@ def run_repl(
 
 def chat_command(
     model: str = typer.Option(
-        "dashscope/qwen3-vl-flash",
+        "deepseek/deepseek-v4-flash-vision-exp",
         "--model",
-        help="Model: dashscope/qwen3-vl-flash (default, vision), deepseek/<id>, qwen/<id>, or fake.",
+        help="Model: deepseek/deepseek-v4-flash-vision-exp (default, vision), dashscope/<id>, qwen/<id>, or fake.",
     ),
     use_vision: str = typer.Option(
         "auto",
