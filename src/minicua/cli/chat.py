@@ -74,9 +74,9 @@ def run_repl(
 
 def chat_command(
     model: str = typer.Option(
-        "deepseek/deepseek-chat",
+        "dashscope/qwen3-vl-flash",
         "--model",
-        help="Model: deepseek/deepseek-chat (default), dashscope/<id>, qwen/<id>, or fake.",
+        help="Model: dashscope/qwen3-vl-flash (default, vision), deepseek/<id>, qwen/<id>, or fake.",
     ),
     use_vision: str = typer.Option(
         "auto",
@@ -90,9 +90,9 @@ def chat_command(
         help="Run headless (hide the browser window; default shows it so you can watch).",
     ),
     mode: str = typer.Option(
-        "browser",
+        "auto",
         "--mode",
-        help="Operating mode: browser (DOM) or desktop (screenshot + mouse/keyboard/shell).",
+        help="Operating mode: auto (detect per instruction), browser (DOM), or desktop (screenshot + mouse/keyboard/shell).",
     ),
 ) -> None:
     """Start an interactive REPL that drives the browser or the whole desktop."""
@@ -114,6 +114,8 @@ def chat_command(
 
     if mode == "desktop":
         runner = ChatRunner(model_obj, max_steps=max_steps, use_vision="vision", mode="desktop")
+    elif mode == "auto":
+        runner = ChatRunner(model_obj, max_steps=max_steps, use_vision="auto", mode="auto", headless=headless)
     else:
         runner = ChatRunner(model_obj, max_steps=max_steps, use_vision=use_vision, headless=headless)
     run_repl(runner)

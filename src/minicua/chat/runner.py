@@ -172,7 +172,8 @@ class ChatRunner:
         environment: DesktopEnvironment | None = None,
     ) -> ChatRun:
         """Run ``instruction`` and return what happened (never raises for task failure)."""
-        if self.mode == "desktop":
+        mode = self._detect_mode(instruction) if self.mode == "auto" else self.mode
+        if mode == "desktop":
             return await self._run_desktop(instruction, environment)
         owns_session = session is None
         session = session or BrowserSession(headless=self.headless)
@@ -207,6 +208,16 @@ class ChatRunner:
         finally:
             if owns_session:
                 await session.close()
+
+    @staticmethod
+    def _detect_mode(instruction: str) -> str:
+        """Pick browser vs desktop from a URL / web keyword, else desktop."""
+        text = instruction.lower()
+        browser_hints = (
+            "http://", "https://", "www.", ".com", ".cn", ".org", ".io", ".net",
+            "网页", "网站", "浏览器", "页面", "网址", "链接",
+        )
+        return "browser" if any(h in text for h in browser_hints) else "desktop"
 
     async def _run_desktop(
         self,
