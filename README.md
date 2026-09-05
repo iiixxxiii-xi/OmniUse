@@ -1,47 +1,39 @@
-# minicua
+# OmniUse
 
-A long-horizon, browser-first computer-use agent. It drives a real Chromium
-browser (via Playwright), perceives the page as linearized DOM, grounds the model's
-tool calls back to page elements, and recovers from stale elements / page changes /
-loops / crashes — then scores its own runs with a declarative evaluator.
+一个长程、浏览器优先的 **computer-use agent**。它驱动真实 Chromium（Playwright）感知页面为线性化 DOM、把模型的工具调用落回页面元素，并从 stale 元素 / 页面变化 / 死循环 / 崩溃中恢复；另有 desktop 动作空间可驱动本地桌面或 SSH 连接的 VM（OSWorld 风格）。运行结束后用声明式 evaluator 给自己打分。
 
-**Architecture (one sentence):** a layered pipeline of *perception → action/grounding →
-controller loop → recovery → state → eval*, wrapped by a persistent browser session,
-with Playwright as the primary action space, DOM linearization as the primary
-perception, and a declarative evaluator (getter → metric → conj) as the judge.
+> 包名 / 命令行入口为 `minicua`，项目名 OmniUse。
 
-**Two action spaces.** The `browser/` pipeline drives a real Chromium via
-Playwright. A parallel `desktop/` pipeline drives a local desktop or an
-SSH-connected VM (`pyautogui` + screenshots over a persistent `paramiko` channel)
-for OSWorld-style GUI tasks — the same agent loop and recovery machinery run
-against both with no other changes.
+**架构（一句话）：** *感知 → 动作/落点 → 控制循环 → 恢复 → 状态 → 评测* 的分层流水线，外包一个持久浏览器会话；Playwright 是主动作空间、DOM 线性化是主感知、声明式 evaluator（getter → metric → conj）当裁判。
 
-## Install & test
+**两个动作空间。** `browser/` 流水线通过 Playwright 驱动真实 Chromium。并行的 `desktop/` 流水线驱动本地桌面或 SSH 连接的 VM（`pyautogui` + 截图，走持久 `paramiko` 通道），用于 OSWorld 风格 GUI 任务——同一个 agent 循环与恢复机制对两者通用，无需改动。
+
+## 安装与测试
 
 ```bash
 # Python 3.12 + uv
 uv sync
-export PLAYWRIGHT_BROWSERS_PATH=/d/playwright-browsers   # Windows (D: drive); see tests/conftest.py
-uv run pytest -v                                        # full suite (TDD, fake model + inline HTML fixtures)
+export PLAYWRIGHT_BROWSERS_PATH=/d/playwright-browsers   # Windows（D 盘）；见 tests/conftest.py
+uv run pytest -v                                        # 全量（TDD，fake model + 内联 HTML fixture）
 ```
 
-## Run
+## 运行
 
 ```bash
-# one task (FakeModel by default — no API key needed)
+# 单任务（默认 FakeModel — 无需 API key）
 uv run minicua run tasks/click_button.json --script script.json
 
-# a whole task set -> report.md / report.csv / results.json
+# 一批任务 -> report.md / report.csv / results.json
 uv run minicua eval tasks/ --output out/
 
-# re-render a report from a saved results.json (no browser)
+# 从已存 results.json 重渲染报告（无浏览器）
 uv run minicua report out/results.json --output out/
 ```
 
-`--script` is a JSON list of scripted model responses, e.g.
-`[{"name": "click", "params": {"index": 1}}, {"name": "done", "params": {"success": true}}]`.
+`--script` 是模型响应的脚本化 JSON 列表，例如
+`[{"name": "click", "params": {"index": 1}}, {"name": "done", "params": {"success": true}}]`。
 
-## Task format (declarative — new tasks are pure JSON)
+## 任务格式（声明式——新任务纯 JSON）
 
 ```json
 {
@@ -56,31 +48,25 @@ uv run minicua report out/results.json --output out/
 }
 ```
 
-* **getter** (`result`) — reads final browser state (`page_url`, `page_text`,
-  `element_exists`, `element_text`, `element_attribute`, `element_count`,
-  `cookie_exists`, `local_storage`, `screenshot`, `page_title`).
-* **metric** (`func`) — compares the getter's value against `expected`
-  (`exact_match`, `contains`, `regex_match`, `count_eq`,
-  `element_exists_metric`, `match_in_list`, `is_in_list`).
-* **conj** — `"and"` (every check must pass) or `"or"` (any check passes).
+- **getter**（`result`）——读取最终浏览器状态（`page_url`、`page_text`、`element_exists`、`element_text`、`element_attribute`、`element_count`、`cookie_exists`、`local_storage`、`screenshot`、`page_title`）。
+- **metric**（`func`）——把 getter 的值与 `expected` 比较（`exact_match`、`contains`、`regex_match`、`count_eq`、`element_exists_metric`、`match_in_list`、`is_in_list`）。
+- **conj**——`"and"`（每项检查都过）或 `"or"`（任一检查过）。
 
-## Six run metrics (from the event log)
+## 六项运行指标
 
-`task_success`, `avg_tool_calls`, `token_cost`, `latency`, `recovery_rate`,
-`invalid_action_rate` — each extracted from the typed event log and guarded
-against division by zero (see `src/minicua/eval/metrics_aggregate.py`).
+`task_success`、`avg_tool_calls`、`token_cost`、`latency`、`recovery_rate`、`invalid_action_rate`——从类型化事件日志提取，并做了除零保护（见 `src/minicua/eval/metrics_aggregate.py`）。
 
-## Package layout
+## 目录结构
 
 ```
 src/minicua/
-  browser/     persistent Playwright session + crash watchdog
-  perception/  DOM linearization, selector map, screenshots
-  action/      action models, grounding (index -> locator), executor, registry
-  controller/  agent loop, budget, retry, ChatModel + FakeModel
-  desktop/     desktop action space: local + SSH-driven VM (OSWorld-style)
-  recovery/    stale relocalize, page-change, loop, crash rebuild
-  state/       append-only event log, checkpoint, trajectory (JSONL)
-  eval/        getters, metrics, evaluator, six-metric aggregate, runner, report
-  cli/         run / eval / report commands
+  browser/     持久 Playwright 会话 + 崩溃看门狗
+  perception/  DOM 线性化、selector 映射、截图
+  action/      动作模型、落点（index → locator）、执行器、注册表
+  controller/  agent 循环、预算、重试、ChatModel + FakeModel
+  desktop/     desktop 动作空间：本地 + SSH 驱动 VM（OSWorld 风格）
+  recovery/    stale 重定位、页面变化、死循环、崩溃重建
+  state/       append-only 事件日志、检查点、轨迹（JSONL）
+  eval/        getter、metric、evaluator、六指标聚合、runner、report
+  cli/         run / eval / report 命令
 ```
