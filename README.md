@@ -49,11 +49,24 @@ Screenshot / DOM / Accessibility Tree
 
 ```bash
 uv sync
+uv tool install .   # 装成全局命令 minicua
 export PLAYWRIGHT_BROWSERS_PATH=/d/playwright-browsers   # Windows（D 盘）
+```
 
-uv run minicua run tasks/click_button.json --script script.json   # 单任务
-uv run minicua eval tasks/ --output out/                          # 一批任务
-uv run minicua report out/results.json --output out/              # 重渲染报告
+### 对话（claude 风格）
+
+```bash
+minicua                              # 直接进对话，auto 模式自动判断 browser / desktop
+> 打开 https://xxx.com 帮我填登录表单   # 自动走 browser
+> 打开记事本写点东西                   # 自动走 desktop
+> exit
+```
+
+默认视觉模型 `qwen3-vl-flash`；想强制指定加 `--mode browser` 或 `--mode desktop`。
+
+```bash
+minicua run tasks/click_button.json --script script.json   # 单任务
+minicua eval tasks/ --output out/                          # 一批任务
 ```
 
 ## 任务格式
