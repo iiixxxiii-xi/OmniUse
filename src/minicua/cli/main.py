@@ -1,5 +1,7 @@
 """The minicua CLI: ``run`` (one task), ``eval`` (a task set), ``ablation`` (compare), ``report`` (re-render)."""
 
+import sys
+
 import typer
 
 from minicua.cli.ablation import ablation_command
@@ -11,7 +13,6 @@ from minicua.cli.run import run_command
 app = typer.Typer(
     name="minicua",
     help="Long-horizon browser-first computer-use agent (eval + CLI).",
-    no_args_is_help=True,
 )
 
 app.command("run")(run_command)
@@ -23,6 +24,10 @@ app.command("chat")(chat_command)
 
 def main() -> None:
     """Entry point for ``python -m minicua`` and the ``minicua`` console script."""
+    # Bare ``minicua`` (no subcommand) drops straight into an interactive chat
+    # session — type a browser/desktop instruction and the agent carries it out.
+    if len(sys.argv) <= 1:
+        sys.argv.append("chat")
     app()
 
 

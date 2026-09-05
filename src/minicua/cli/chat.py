@@ -74,9 +74,9 @@ def run_repl(
 
 def chat_command(
     model: str = typer.Option(
-        "fake",
+        "deepseek/deepseek-chat",
         "--model",
-        help="Model: fake, deepseek/<id>, dashscope/<id>, or qwen/<id>.",
+        help="Model: deepseek/deepseek-chat (default), dashscope/<id>, qwen/<id>, or fake.",
     ),
     use_vision: str = typer.Option(
         "auto",
