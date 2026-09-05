@@ -11,6 +11,8 @@
 
 <br>
 
+## 能做什么
+
 OmniUse 让 AI agent 像人一样操作电脑——打开网页、点击、输入，也能驱动真实桌面 / VM。但重点不是「能点一下」，而是**长程任务里不崩、不迷路、能恢复**：持久会话、stale 元素重定位、页面变化检测、死循环检测、崩溃重建。
 
 > 包名 / 命令行入口为 `minicua`，项目名 OmniUse。
@@ -25,6 +27,24 @@ OmniUse 让 AI agent 像人一样操作电脑——打开网页、点击、输�
 - **verification** — 声明式 evaluator（getter → metric → conj）
 - **两个动作空间** — `browser/`（Playwright 驱动 Chromium）+ `desktop/`（本地桌面 / SSH VM，OSWorld 风格）
 
+## 架构
+
+```
+Screenshot / DOM / Accessibility Tree
+                  ↓
+        State Representation
+                  ↓
+           Agent Policy
+                  ↓
+  mouse / keyboard / browser / shell
+                  ↓
+         Environment State
+                  ↓
+       Success Verification
+                  ↓
+          Recovery / Replan
+```
+
 ## 快速开始
 
 ```bash
@@ -34,6 +54,44 @@ export PLAYWRIGHT_BROWSERS_PATH=/d/playwright-browsers   # Windows（D 盘）
 uv run minicua run tasks/click_button.json --script script.json   # 单任务
 uv run minicua eval tasks/ --output out/                          # 一批任务
 uv run minicua report out/results.json --output out/              # 重渲染报告
+```
+
+## 任务格式
+
+```json
+{
+  "id": "click_button",
+  "instruction": "Click the 'Click me' button.",
+  "html": "<button id=btn onclick=\"document.getElementById('out').textContent='clicked'\">Click me</button><div id=out></div>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "clicked" }
+  }
+}
+```
+
+- **getter**（`result`）读取最终状态（`page_url` / `page_text` / `element_text` / `screenshot` …）
+- **metric**（`func`）比较（`exact_match` / `contains` / `regex_match` / `count_eq` …）
+- **conj** — `and`（每项都过）/ `or`（任一过）
+
+## 六项运行指标
+
+`task_success`、`avg_tool_calls`、`token_cost`、`latency`、`recovery_rate`、`invalid_action_rate`（从类型化 event log 提取，做除零保护）。
+
+## 目录结构
+
+```
+src/minicua/
+  browser/     持久 Playwright 会话 + 崩溃看门狗
+  perception/  DOM 线性化、selector 映射、截图
+  action/      动作模型、落点（index → locator）、执行器
+  controller/  agent 循环、预算、重试、ChatModel + FakeModel
+  desktop/     desktop 动作空间（本地 / SSH VM，OSWorld 风格）
+  recovery/    stale 重定位、页面变化、死循环、崩溃重建
+  state/       append-only event log、checkpoint、轨迹
+  eval/        getter、metric、evaluator、runner、report
+  cli/         run / eval / report 命令
 ```
 
 ## 参考
