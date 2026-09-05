@@ -19,7 +19,7 @@ failed evaluator all produce a structured :class:`EvalResult` with
 import logging
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import BaseModel, Field
 
@@ -175,6 +175,7 @@ async def run_task(
     max_steps: int | None = None,
     use_vision: str = "dom_only",
     recovery: bool = True,
+    fault_injector: Callable[[Any], Any] | None = None,
 ) -> EvalResult:
     """Run one task: setup page → agent loop → declarative evaluator → result."""
     owns_session = session is None
@@ -186,6 +187,19 @@ async def run_task(
         elif task.initial_url:
             await session.navigate(task.initial_url)
 
+        # Page-state verification: when recovery is on, wire the task's declarative
+        # evaluator in as the completion verifier. A "done" that the final state
+        # doesn't back up is rejected and fed back, forcing the agent to continue —
+        # this is what distinguishes the recovery harness from a bare ReAct loop.
+        verifier = None
+        if recovery:
+
+            async def _verify() -> tuple[bool, str]:
+                score = await evaluate(session, task.evaluator)
+                return score >= task.threshold, f"score={score:.2f}"
+
+            verifier = _verify
+
         agent = Agent(
             session=session,
             model=model,
@@ -193,6 +207,8 @@ async def run_task(
             max_steps=max_steps or task.max_steps,
             use_vision=use_vision,
             recovery=recovery,
+            verifier=verifier,
+            fault_injector=fault_injector,
         )
         start = time.monotonic()
         agent_result = await agent.run(task.instruction)

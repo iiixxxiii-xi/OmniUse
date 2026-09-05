@@ -1,0 +1,16 @@
+{
+  "id": "b32",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the order page fill item='Laptop', quantity='1', then click Next; on the billing page fill name='Grace', address='2 Oak St', then click Next; on the review page fill type 'APPROVE'='APPROVE', then click Place Order. Then verify 'Survey submitted' appears.",
+  "html": "<div id=\"page_order\" style=\"display:block\"><select id=\"item\"><option>Laptop</option><option>Other</option></select><select id=\"qty\"><option>1</option><option>Other</option></select><button id=\"btn_order\" onclick=\"go_order()\">Next</button></div><div id=\"page_billing\" style=\"display:none\"><input id=\"name\" placeholder=\"name\"><input id=\"address\" placeholder=\"address\"><button id=\"btn_billing\" onclick=\"go_billing()\">Next</button></div><div id=\"page_review\" style=\"display:none\"><input id=\"approve\" placeholder=\"type 'APPROVE'\"><button id=\"btn_review\" onclick=\"go_review()\">Place Order</button></div><div id=\"out\"></div><script>function go_order(){if(document.getElementById('item').value===\"Laptop\" && document.getElementById('qty').value===\"1\"){document.getElementById('page_order').style.display='none';document.getElementById('page_billing').style.display='block';}}function go_billing(){if(document.getElementById('name').value===\"Grace\" && document.getElementById('address').value===\"2 Oak St\"){document.getElementById('page_billing').style.display='none';document.getElementById('page_review').style.display='block';}}function go_review(){if(document.getElementById('approve').value===\"APPROVE\"){document.getElementById('out').textContent='Survey submitted';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Survey submitted"
+    }
+  }
+}

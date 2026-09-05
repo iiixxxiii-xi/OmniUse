@@ -30,14 +30,25 @@ EXEMPT_ACTIONS = frozenset({"wait", "done", "go_back"})
 def _normalize_action(action_name: str, params: dict[str, Any] | None) -> str:
     params = params or {}
     if action_name == "click":
-        # Element identity only — two clicks on the same index are the same action.
-        return f"click|{params.get('index')}"
+        # Browser clicks carry an element index; desktop clicks carry (x, y)
+        # coordinates. Normalize each so a stuck click in either mode is detected.
+        if params.get("index") is not None:
+            return f"click|{params.get('index')}"
+        return f"click|{params.get('x')},{params.get('y')}"
     if action_name == "type":
         return f"type|{params.get('index')}|{str(params.get('text', '')).strip().lower()}"
     if action_name == "navigate":
         return f"navigate|{params.get('url', '')}"
     if action_name == "scroll":
         return f"scroll|{params.get('direction', 'down')}"
+    if action_name == "shell":
+        # Normalize by the command's first word (ls/cat/mv/find/...), so a
+        # "similar-variation loop" — the same command repeated with different
+        # flags, pipes, or trailing args — is still detected as a loop instead
+        # of being masked by tiny command diffs.
+        cmd = str(params.get("command", "")).strip()
+        first = cmd.split()[0] if cmd else ""
+        return f"shell|{first}"
     filtered = {k: v for k, v in sorted(params.items()) if v is not None}
     return f"{action_name}|{json.dumps(filtered, sort_keys=True, default=str)}"
 
@@ -58,6 +69,7 @@ class LoopDetector:
         self.consecutive_stagnant_pages: int = 0
         self.max_repetition_count: int = 0
         self.most_repeated_hash: str | None = None
+        self._nudges: int = 0
 
     # -- recording ----------------------------------------------------------
 
@@ -104,21 +116,34 @@ class LoopDetector:
         return self.consecutive_stagnant_pages >= self.threshold
 
     def nudge_message(self) -> str | None:
-        """An escalating awareness nudge, or ``None`` when no loop is detected."""
+        """An escalating awareness nudge, or ``None`` when no loop is detected.
+
+        The message grows more forceful as the loop persists (``self._nudges``),
+        so a strong model that ignores the first soft hint gets a direct,
+        actionable instruction to stop and re-decide instead of spinning forever.
+        """
         messages: list[str] = []
         if self.is_looping():
             messages.append(
-                f"Heads up: you have repeated a similar action {self.max_repetition_count} times "
-                f"in the last {len(self._action_hashes)} actions. If this is intentional and making "
-                "progress, carry on. If not, try a different approach."
+                f"WARNING: you have repeated the same action {self.max_repetition_count} times "
+                f"in the last {len(self._action_hashes)} actions — this looks like a loop. "
+                "Re-check the current state: if the task goal is already satisfied, call done now. "
+                "Otherwise, take a genuinely different action."
             )
         if self.stagnant():
             messages.append(
                 f"The page has been unchanged across {self.consecutive_stagnant_pages} consecutive "
-                "actions. Your actions might not be having the intended effect; consider a different "
-                "element or approach."
+                "actions. Your actions are not having the intended effect; re-observe and change "
+                "approach."
             )
         if not messages:
             return None
-        logger.info("loop nudge: repetition=%d stagnant=%d", self.max_repetition_count, self.consecutive_stagnant_pages)
+        self._nudges += 1
+        if self._nudges >= 3:
+            messages.append(
+                "You have been warned repeatedly about a loop and are still repeating the same "
+                "action. STOP: if the goal is met, call done immediately; otherwise pick a "
+                "completely different action right now."
+            )
+        logger.info("loop nudge: repetition=%d stagnant=%d nudges=%d", self.max_repetition_count, self.consecutive_stagnant_pages, self._nudges)
         return "\n\n".join(messages)

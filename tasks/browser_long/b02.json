@@ -1,0 +1,16 @@
+{
+  "id": "b02",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the acc page fill username='alice', email='alice@example.com', password='pass123', then click Next; on the ship page fill full name='Alice Lee', address='1 Main St', city='Boston', then click Next; on the pay page fill card='4111111111111111', expiry='12/27', cvv='123', then click Place Order. Then verify 'Survey submitted' appears.",
+  "html": "<div id=\"page_acc\" style=\"display:block\"><input id=\"username\" placeholder=\"username\"><input id=\"email\" placeholder=\"email\"><input id=\"password\" placeholder=\"password\"><button id=\"btn_acc\" onclick=\"go_acc()\">Next</button></div><div id=\"page_ship\" style=\"display:none\"><input id=\"fullname\" placeholder=\"full name\"><input id=\"address\" placeholder=\"address\"><input id=\"city\" placeholder=\"city\"><button id=\"btn_ship\" onclick=\"go_ship()\">Next</button></div><div id=\"page_pay\" style=\"display:none\"><input id=\"card\" placeholder=\"card\"><input id=\"expiry\" placeholder=\"expiry\"><input id=\"cvv\" placeholder=\"cvv\"><button id=\"btn_pay\" onclick=\"go_pay()\">Place Order</button></div><div id=\"out\"></div><script>function go_acc(){if(document.getElementById('username').value===\"alice\" && document.getElementById('email').value===\"alice@example.com\" && document.getElementById('password').value===\"pass123\"){document.getElementById('page_acc').style.display='none';document.getElementById('page_ship').style.display='block';}}function go_ship(){if(document.getElementById('fullname').value===\"Alice Lee\" && document.getElementById('address').value===\"1 Main St\" && document.getElementById('city').value===\"Boston\"){document.getElementById('page_ship').style.display='none';document.getElementById('page_pay').style.display='block';}}function go_pay(){if(document.getElementById('card').value===\"4111111111111111\" && document.getElementById('expiry').value===\"12/27\" && document.getElementById('cvv').value===\"123\"){document.getElementById('out').textContent='Survey submitted';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Survey submitted"
+    }
+  }
+}

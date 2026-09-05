@@ -1,0 +1,11 @@
+{
+  "id": "disabled_next_gate",
+  "difficulty": "hard",
+  "instruction": "Click 'Next' to proceed to the final page, then verify 'Arrived' appears.",
+  "html": "<div id=\"step1\"><input id=\"email\" placeholder=\"email\"><button id=\"next\" disabled onclick=\"n()\">Next</button></div><div id=\"step2\" style=\"display:none\"><button id=\"arrive\" onclick=\"a()\">Arrive</button></div><div id=\"out\"></div><script>document.getElementById('email').addEventListener('input',function(){document.getElementById('next').disabled=!this.value.includes('@');});function n(){document.getElementById('step1').style.display='none';document.getElementById('step2').style.display='block';}function a(){document.getElementById('out').textContent='Arrived';}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Arrived" }
+  }
+}

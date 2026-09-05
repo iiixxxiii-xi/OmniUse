@@ -10,6 +10,12 @@ controller loop → recovery → state → eval*, wrapped by a persistent browse
 with Playwright as the primary action space, DOM linearization as the primary
 perception, and a declarative evaluator (getter → metric → conj) as the judge.
 
+**Two action spaces.** The `browser/` pipeline drives a real Chromium via
+Playwright. A parallel `desktop/` pipeline drives a local desktop or an
+SSH-connected VM (`pyautogui` + screenshots over a persistent `paramiko` channel)
+for OSWorld-style GUI tasks — the same agent loop and recovery machinery run
+against both with no other changes.
+
 ## Install & test
 
 ```bash
@@ -72,6 +78,7 @@ src/minicua/
   perception/  DOM linearization, selector map, screenshots
   action/      action models, grounding (index -> locator), executor, registry
   controller/  agent loop, budget, retry, ChatModel + FakeModel
+  desktop/     desktop action space: local + SSH-driven VM (OSWorld-style)
   recovery/    stale relocalize, page-change, loop, crash rebuild
   state/       append-only event log, checkpoint, trajectory (JSONL)
   eval/        getters, metrics, evaluator, six-metric aggregate, runner, report

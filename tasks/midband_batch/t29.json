@@ -1,0 +1,16 @@
+{
+  "id": "t29",
+  "difficulty": "hard",
+  "instruction": "Fill the form: first name 'John', last name 'Doe', phone '555-0100'. Click Submit. Then click 'Export Data' and verify 'Data exported' appears.",
+  "html": "<div id=\"page1\"><input id=\"first\" placeholder=\"first name\"><input id=\"last\" placeholder=\"last name\"><input id=\"phone\" placeholder=\"phone\"><button id=\"submit\" onclick=\"s()\">Submit</button></div><div id=\"page2\" style=\"display:none\"><p>Form submitted.</p><button id=\"fin\" onclick=\"f()\">Export Data</button></div><div id=\"out\"></div><script>function s(){if(document.getElementById('first').value===\"John\" && document.getElementById('last').value===\"Doe\" && document.getElementById('phone').value===\"555-0100\"){document.getElementById(\"page1\").style.display=\"none\";document.getElementById(\"page2\").style.display=\"block\";}}function f(){document.getElementById(\"out\").textContent=\"Data exported\";}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Data exported"
+    }
+  }
+}

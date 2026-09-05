@@ -1,0 +1,16 @@
+{
+  "id": "b17",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the login page fill username='dave', password='dave123', then click Log In; on the dash page fill title='My Dashboard', description='hello', then click Next; on the settings page fill timezone='UTC', language='English', then click Save Settings. Then verify 'Survey submitted' appears.",
+  "html": "<div id=\"page_login\" style=\"display:block\"><input id=\"username\" placeholder=\"username\"><input id=\"password\" placeholder=\"password\"><button id=\"btn_login\" onclick=\"go_login()\">Log In</button></div><div id=\"page_dash\" style=\"display:none\"><input id=\"title\" placeholder=\"title\"><input id=\"desc\" placeholder=\"description\"><button id=\"btn_dash\" onclick=\"go_dash()\">Next</button></div><div id=\"page_settings\" style=\"display:none\"><select id=\"timezone\"><option>UTC</option><option>Other</option></select><select id=\"lang\"><option>English</option><option>Other</option></select><button id=\"btn_settings\" onclick=\"go_settings()\">Save Settings</button></div><div id=\"out\"></div><script>function go_login(){if(document.getElementById('username').value===\"dave\" && document.getElementById('password').value===\"dave123\"){document.getElementById('page_login').style.display='none';document.getElementById('page_dash').style.display='block';}}function go_dash(){if(document.getElementById('title').value===\"My Dashboard\" && document.getElementById('desc').value===\"hello\"){document.getElementById('page_dash').style.display='none';document.getElementById('page_settings').style.display='block';}}function go_settings(){if(document.getElementById('timezone').value===\"UTC\" && document.getElementById('lang').value===\"English\"){document.getElementById('out').textContent='Survey submitted';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Survey submitted"
+    }
+  }
+}

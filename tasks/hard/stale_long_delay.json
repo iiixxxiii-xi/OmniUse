@@ -1,0 +1,11 @@
+{
+  "id": "stale_long_delay",
+  "difficulty": "hard",
+  "instruction": "Wait until the 'Confirm' button becomes enabled, click it, and verify 'Done' appears.",
+  "html": "<button id=\"confirm\" disabled onclick=\"document.getElementById('out').textContent='Done'\">Confirm</button><div id=\"out\"></div><script>setTimeout(function(){document.getElementById('confirm').disabled = false;}, 8000);</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Done" }
+  }
+}

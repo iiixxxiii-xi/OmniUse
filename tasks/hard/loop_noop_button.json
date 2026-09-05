@@ -1,0 +1,11 @@
+{
+  "id": "loop_noop_button",
+  "difficulty": "hard",
+  "instruction": "Click 'Next' until 'Finished' appears, then report 'Finished'.",
+  "html": "<button id=\"next\" onclick=\"n()\">Next</button><div id=\"out\"></div><script>var c=0;function n(){c++;if(c>=5){document.getElementById('out').textContent='Finished';}else{document.getElementById('out').textContent='';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Finished" }
+  }
+}

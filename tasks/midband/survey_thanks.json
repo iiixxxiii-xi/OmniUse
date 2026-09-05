@@ -1,0 +1,11 @@
+{
+  "id": "survey_thanks",
+  "difficulty": "hard",
+  "instruction": "Complete the survey: rating '5', comment 'Great product'. Click Submit Survey. Then click 'View Thank You' and verify 'Thanks!' appears.",
+  "html": "<div id=\"page1\"><select id=\"rating\"><option>5</option><option>4</option><option>3</option></select><input id=\"comment\" placeholder=\"comment\"><button onclick=\"s()\">Submit Survey</button></div><div id=\"page2\" style=\"display:none\"><p>Survey submitted.</p><button onclick=\"t()\">View Thank You</button></div><div id=\"out\"></div><script>function s(){var r=document.getElementById('rating').value;var c=document.getElementById('comment').value;if(r==='5'&&c==='Great product'){document.getElementById('page1').style.display='none';document.getElementById('page2').style.display='block';}}function t(){document.getElementById('out').textContent='Thanks!';}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Thanks!" }
+  }
+}

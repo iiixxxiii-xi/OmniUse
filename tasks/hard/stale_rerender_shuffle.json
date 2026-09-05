@@ -1,0 +1,11 @@
+{
+  "id": "stale_rerender_shuffle",
+  "difficulty": "hard",
+  "instruction": "Click the button whose text is 'Target', then verify 'hit' appears.",
+  "html": "<div id=\"box\"><button onclick=\"hit('a')\">Alpha</button><button onclick=\"hit('b')\">Beta</button><button onclick=\"hit('t')\">Target</button></div><div id=\"out\"></div><script>function hit(x){if(x==='t'){document.getElementById('out').textContent='hit';}else{var b=document.getElementById('box');b.innerHTML=\"<button onclick='hit(\\\"a\\\")'>Alpha</button><button onclick='hit(\\\"t\\\")'>Target</button><button onclick='hit(\\\"b\\\")'>Beta</button>\";}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "hit" }
+  }
+}

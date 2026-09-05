@@ -1,0 +1,16 @@
+{
+  "id": "t02",
+  "difficulty": "hard",
+  "instruction": "Fill the form: name 'Alice', department 'Engineering', role 'Manager'. Click Submit. Then click 'Save Receipt' and verify 'Receipt saved' appears.",
+  "html": "<div id=\"page1\"><input id=\"name\" placeholder=\"name\"><select id=\"dept\"><option>Engineering</option><option>Other</option></select><select id=\"role\"><option>Manager</option><option>Other</option></select><button id=\"submit\" onclick=\"s()\">Submit</button></div><div id=\"page2\" style=\"display:none\"><p>Form submitted.</p><button id=\"fin\" onclick=\"f()\">Save Receipt</button></div><div id=\"out\"></div><script>function s(){if(document.getElementById('name').value===\"Alice\" && document.getElementById('dept').value===\"Engineering\" && document.getElementById('role').value===\"Manager\"){document.getElementById(\"page1\").style.display=\"none\";document.getElementById(\"page2\").style.display=\"block\";}}function f(){document.getElementById(\"out\").textContent=\"Receipt saved\";}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Receipt saved"
+    }
+  }
+}

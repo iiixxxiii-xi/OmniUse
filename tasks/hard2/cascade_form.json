@@ -1,0 +1,11 @@
+{
+  "id": "cascade_form",
+  "difficulty": "hard",
+  "instruction": "Fill the form: name 'Alice', country 'United States', city 'Los Angeles' (this option only appears after picking the country), age '30'. Then click Submit and verify 'Success' appears.",
+  "html": "<div><input id=\"name\" placeholder=\"name\"><select id=\"country\" onchange=\"c(this.value)\"><option value=\"\">--country--</option><option value=\"us\">United States</option><option value=\"ca\">Canada</option></select><select id=\"city\"></select><input id=\"age\" placeholder=\"age\"><button id=\"submit\" onclick=\"s()\">Submit</button><div id=\"out\"></div></div><script>function c(v){var city=document.getElementById('city');city.innerHTML='';if(v==='us'){city.innerHTML=\"<option value=''>--city--</option><option>Los Angeles</option><option>New York</option>\";}else if(v==='ca'){city.innerHTML=\"<option value=''>--city--</option><option>Toronto</option><option>Vancouver</option>\";}}function s(){var n=document.getElementById('name').value;var co=document.getElementById('country').value;var ci=document.getElementById('city').value;var a=document.getElementById('age').value;if(n==='Alice'&&co==='us'&&ci==='Los Angeles'&&a==='30'){document.getElementById('out').textContent='Success';}else{document.getElementById('out').textContent='Fail';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Success" }
+  }
+}

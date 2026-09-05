@@ -1,0 +1,16 @@
+{
+  "id": "b14",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the sv page fill rating='5', comment='Great', then click Next; on the contact page fill name='Carol', email='carol@example.com', then click Next; on the submit page fill type 'YES'='YES', then click Submit Survey. Then verify 'Registration done' appears.",
+  "html": "<div id=\"page_sv\" style=\"display:block\"><select id=\"rating\"><option>5</option><option>Other</option></select><input id=\"comment\" placeholder=\"comment\"><button id=\"btn_sv\" onclick=\"go_sv()\">Next</button></div><div id=\"page_contact\" style=\"display:none\"><input id=\"name\" placeholder=\"name\"><input id=\"email\" placeholder=\"email\"><button id=\"btn_contact\" onclick=\"go_contact()\">Next</button></div><div id=\"page_submit\" style=\"display:none\"><input id=\"consent\" placeholder=\"type 'YES'\"><button id=\"btn_submit\" onclick=\"go_submit()\">Submit Survey</button></div><div id=\"out\"></div><script>function go_sv(){if(document.getElementById('rating').value===\"5\" && document.getElementById('comment').value===\"Great\"){document.getElementById('page_sv').style.display='none';document.getElementById('page_contact').style.display='block';}}function go_contact(){if(document.getElementById('name').value===\"Carol\" && document.getElementById('email').value===\"carol@example.com\"){document.getElementById('page_contact').style.display='none';document.getElementById('page_submit').style.display='block';}}function go_submit(){if(document.getElementById('consent').value===\"YES\"){document.getElementById('out').textContent='Registration done';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Registration done"
+    }
+  }
+}

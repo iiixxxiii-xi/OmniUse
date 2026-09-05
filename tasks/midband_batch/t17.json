@@ -1,0 +1,16 @@
+{
+  "id": "t17",
+  "difficulty": "hard",
+  "instruction": "Fill the form: rating '5', comment 'Great product'. Click Submit. Then click 'Export Data' and verify 'Data exported' appears.",
+  "html": "<div id=\"page1\"><select id=\"rating\"><option>5</option><option>Other</option></select><input id=\"comment\" placeholder=\"comment\"><button id=\"submit\" onclick=\"s()\">Submit</button></div><div id=\"page2\" style=\"display:none\"><p>Form submitted.</p><button id=\"fin\" onclick=\"f()\">Export Data</button></div><div id=\"out\"></div><script>function s(){if(document.getElementById('rating').value===\"5\" && document.getElementById('comment').value===\"Great product\"){document.getElementById(\"page1\").style.display=\"none\";document.getElementById(\"page2\").style.display=\"block\";}}function f(){document.getElementById(\"out\").textContent=\"Data exported\";}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Data exported"
+    }
+  }
+}

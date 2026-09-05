@@ -1,0 +1,11 @@
+{
+  "id": "stale_reorder",
+  "difficulty": "hard",
+  "instruction": "Click the button labelled 'Alpha', then click the button labelled 'Target', and verify 'hit' appears.",
+  "html": "<div id=\"list\"><button onclick=\"h('a')\">Alpha</button><button onclick=\"h('b')\">Beta</button><button onclick=\"h('t')\">Target</button></div><div id=\"out\"></div><script>function h(x){if(x==='t'){document.getElementById('out').textContent='hit';}else{var l=document.getElementById('list');l.innerHTML=\"<button onclick='h(\\\"b\\\")'>Beta</button><button onclick='h(\\\"t\\\")'>Target</button><button onclick='h(\\\"a\\\")'>Alpha</button>\";}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "hit" }
+  }
+}

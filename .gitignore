@@ -13,3 +13,4 @@ htmlcov/
 .env
 out/
 tmp/
+results/

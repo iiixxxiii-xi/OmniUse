@@ -1,0 +1,11 @@
+{
+  "id": "stale_remove",
+  "difficulty": "hard",
+  "instruction": "Click 'Go', then click the 'Continue' button that appears, and verify 'Done' appears.",
+  "html": "<button id=\"go\" onclick=\"go()\">Go</button><div id=\"out\"></div><script>function go(){var g=document.getElementById('go');g.remove();var c=document.createElement('button');c.id='continue';c.textContent='Continue';c.onclick=function(){document.getElementById('out').textContent='Done';};document.body.appendChild(c);}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Done" }
+  }
+}

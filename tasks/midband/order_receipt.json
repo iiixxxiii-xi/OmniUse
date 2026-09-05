@@ -1,0 +1,11 @@
+{
+  "id": "order_receipt",
+  "difficulty": "hard",
+  "instruction": "Order two 'Widget' items and checkout with name 'Alice' and address '1 Main St'. After placing the order, click 'Save Receipt' and verify 'Receipt saved' appears.",
+  "html": "<div id=\"store\"><button onclick=\"add()\">Add Widget</button> <span id=\"count\">0</span> items <button onclick=\"co()\">Checkout</button></div><div id=\"co\" style=\"display:none\"><input id=\"name\" placeholder=\"name\"><input id=\"addr\" placeholder=\"address\"><button onclick=\"p()\">Place Order</button></div><div id=\"done\" style=\"display:none\"><p>Order placed.</p><button onclick=\"s()\">Save Receipt</button></div><div id=\"out\"></div><script>var c=0;function add(){c++;document.getElementById('count').textContent=c;}function co(){document.getElementById('store').style.display='none';document.getElementById('co').style.display='block';}function p(){var n=document.getElementById('name').value;var a=document.getElementById('addr').value;if(c===2&&n==='Alice'&&a==='1 Main St'){document.getElementById('co').style.display='none';document.getElementById('done').style.display='block';}}function s(){document.getElementById('out').textContent='Receipt saved';}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Receipt saved" }
+  }
+}

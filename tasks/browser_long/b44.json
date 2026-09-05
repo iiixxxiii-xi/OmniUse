@@ -1,0 +1,16 @@
+{
+  "id": "b44",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the cart page fill item='Camera', quantity='2', then click Checkout; on the shipping page fill name='Ivy', address='3 Pine St', then click Next; on the payment page fill card='5555555555554444', cvv='321', then click Next; on the confirm page fill type 'YES'='YES', then click Confirm. Then verify 'Registration done' appears.",
+  "html": "<div id=\"page_cart\" style=\"display:block\"><select id=\"item\"><option>Camera</option><option>Other</option></select><select id=\"qty\"><option>2</option><option>Other</option></select><button id=\"btn_cart\" onclick=\"go_cart()\">Checkout</button></div><div id=\"page_shipping\" style=\"display:none\"><input id=\"name\" placeholder=\"name\"><input id=\"address\" placeholder=\"address\"><button id=\"btn_shipping\" onclick=\"go_shipping()\">Next</button></div><div id=\"page_payment\" style=\"display:none\"><input id=\"card\" placeholder=\"card\"><input id=\"cvv\" placeholder=\"cvv\"><button id=\"btn_payment\" onclick=\"go_payment()\">Next</button></div><div id=\"page_confirm\" style=\"display:none\"><input id=\"confirm\" placeholder=\"type 'YES'\"><button id=\"btn_confirm\" onclick=\"go_confirm()\">Confirm</button></div><div id=\"out\"></div><script>function go_cart(){if(document.getElementById('item').value===\"Camera\" && document.getElementById('qty').value===\"2\"){document.getElementById('page_cart').style.display='none';document.getElementById('page_shipping').style.display='block';}}function go_shipping(){if(document.getElementById('name').value===\"Ivy\" && document.getElementById('address').value===\"3 Pine St\"){document.getElementById('page_shipping').style.display='none';document.getElementById('page_payment').style.display='block';}}function go_payment(){if(document.getElementById('card').value===\"5555555555554444\" && document.getElementById('cvv').value===\"321\"){document.getElementById('page_payment').style.display='none';document.getElementById('page_confirm').style.display='block';}}function go_confirm(){if(document.getElementById('confirm').value===\"YES\"){document.getElementById('out').textContent='Registration done';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Registration done"
+    }
+  }
+}

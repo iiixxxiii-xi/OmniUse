@@ -235,6 +235,7 @@ class Agent:
         crash_watchdog: CrashWatchdog | None = None,
         memory: TaskMemory | None = None,
         verifier: Callable[[], Any] | None = None,
+        fault_injector: Callable[[Any], Any] | None = None,
     ) -> None:
         if mode not in ("browser", "desktop"):
             raise ValueError(f"unknown agent mode {mode!r}; expected 'browser' or 'desktop'")
@@ -249,6 +250,7 @@ class Agent:
         self.replan_on_stall = replan_on_stall
         self._memory = memory
         self._verifier = verifier
+        self.fault_injector = fault_injector
         if registry is None:
             registry = get_desktop_registry() if self.mode == "desktop" else get_default_registry()
         self.registry = registry
@@ -583,6 +585,13 @@ class Agent:
                     content=output.thought or "",
                     reasoning_content=output.reasoning_content,
                 )
+            )
+
+        # Harness-level fault injection (eval-only): perturb the DOM after the
+        # model committed to actions, so a stale index is exercised deterministically.
+        if self.fault_injector is not None:
+            await self.fault_injector(
+                session=self.session, state=state, actions=actions, step=self.budget.steps
             )
 
         # act (with stale-element recovery + page-change guard; browser only)

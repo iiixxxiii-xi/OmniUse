@@ -1,0 +1,11 @@
+{
+  "id": "multi_tab_state",
+  "difficulty": "hard",
+  "instruction": "Across three tabs, set: tab1 select 'Red', tab2 select 'Large', tab3 check 'Email'. Switch tabs using the buttons, keep all selections, then click Done and verify 'All set' appears.",
+  "html": "<div><button onclick=\"t(1)\">Tab1</button><button onclick=\"t(2)\">Tab2</button><button onclick=\"t(3)\">Tab3</button></div><div id=\"p1\"><select id=\"color\"><option>Red</option><option>Blue</option><option>Green</option></select></div><div id=\"p2\" style=\"display:none\"><select id=\"size\"><option>Small</option><option>Large</option><option>XL</option></select></div><div id=\"p3\" style=\"display:none\"><input type=\"checkbox\" id=\"email\"> Email</div><button onclick=\"d()\">Done</button><div id=\"out\"></div><script>function t(i){document.getElementById('p1').style.display=i===1?'block':'none';document.getElementById('p2').style.display=i===2?'block':'none';document.getElementById('p3').style.display=i===3?'block':'none';}function d(){var c=document.getElementById('color').value;var s=document.getElementById('size').value;var e=document.getElementById('email').checked;if(c==='Red'&&s==='Large'&&e){document.getElementById('out').textContent='All set';}else{document.getElementById('out').textContent='Incomplete';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "All set" }
+  }
+}

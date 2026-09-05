@@ -1,0 +1,11 @@
+{
+  "id": "dynamic_rerank",
+  "difficulty": "hard",
+  "instruction": "Click the item whose text is 'Target'. Note the list re-orders after every click, so re-read it each time. Verify 'hit' appears.",
+  "html": "<div id=\"list\"><button onclick=\"h('a')\">Alpha</button><button onclick=\"h('t')\">Target</button><button onclick=\"h('b')\">Beta</button></div><div id=\"out\"></div><script>function h(x){if(x==='t'){document.getElementById('out').textContent='hit';}else{var l=document.getElementById('list');var items=[\"<button onclick='h(\\\"a\\\")'>Alpha</button>\",\"<button onclick='h(\\\"t\\\")'>Target</button>\",\"<button onclick='h(\\\"b\\\")'>Beta</button>\"];items.reverse();l.innerHTML=items.join('');}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "hit" }
+  }
+}

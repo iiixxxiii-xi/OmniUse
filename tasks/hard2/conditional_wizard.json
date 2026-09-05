@@ -1,0 +1,11 @@
+{
+  "id": "conditional_wizard",
+  "difficulty": "hard",
+  "instruction": "Complete the wizard: step1 select plan 'Pro'; step2 select billing 'Yearly' (this only shows if plan is 'Pro'); step3 click 'Confirm'. Verify 'Confirmed' appears.",
+  "html": "<div id=\"w\"><select id=\"plan\" onchange=\"p(this.value)\"><option value=\"\">--plan--</option><option value=\"free\">Free</option><option value=\"pro\">Pro</option></select><div id=\"billing\" style=\"display:none\"><select id=\"bill\"><option value=\"\">--billing--</option><option>Monthly</option><option>Yearly</option></select></div><button id=\"confirm\" onclick=\"c()\">Confirm</button><div id=\"out\"></div></div><script>function p(v){var b=document.getElementById('billing');if(v==='pro'){b.style.display='block';}else{b.style.display='none';}}function c(){var pl=document.getElementById('plan').value;var bi=document.getElementById('bill').value;if(pl==='pro'&&bi==='Yearly'){document.getElementById('out').textContent='Confirmed';}else{document.getElementById('out').textContent='Wrong';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Confirmed" }
+  }
+}

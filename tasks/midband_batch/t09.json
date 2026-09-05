@@ -1,0 +1,16 @@
+{
+  "id": "t09",
+  "difficulty": "hard",
+  "instruction": "Fill the form: username 'bob', email 'bob@example.com', password 'secret123'. Click Submit. Then click 'View Thank You' and verify 'Thanks!' appears.",
+  "html": "<div id=\"page1\"><input id=\"username\" placeholder=\"username\"><input id=\"email\" placeholder=\"email\"><input id=\"password\" placeholder=\"password\"><button id=\"submit\" onclick=\"s()\">Submit</button></div><div id=\"page2\" style=\"display:none\"><p>Form submitted.</p><button id=\"fin\" onclick=\"f()\">View Thank You</button></div><div id=\"out\"></div><script>function s(){if(document.getElementById('username').value===\"bob\" && document.getElementById('email').value===\"bob@example.com\" && document.getElementById('password').value===\"secret123\"){document.getElementById(\"page1\").style.display=\"none\";document.getElementById(\"page2\").style.display=\"block\";}}function f(){document.getElementById(\"out\").textContent=\"Thanks!\";}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Thanks!"
+    }
+  }
+}

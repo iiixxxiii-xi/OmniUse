@@ -1,0 +1,11 @@
+{
+  "id": "long_checkout",
+  "difficulty": "hard",
+  "instruction": "Complete the checkout flow. Page 1: username 'alice', email 'alice@example.com', password 'pass123', click Next. Page 2: full name 'Alice Lee', address '1 Main St', city 'Boston', click Next. Page 3: card '4111111111111111', expiry '12/27', cvv '123', click Place Order. Then verify 'Order confirmed' appears.",
+  "html": "<div id='p1'><h3>Account</h3><input id='username' placeholder='username'><input id='email' placeholder='email'><input id='password' placeholder='password'><button id='next1' onclick='go1()'>Next</button></div><div id='p2' style='display:none'><h3>Shipping</h3><input id='fullname' placeholder='full name'><input id='address' placeholder='address'><input id='city' placeholder='city'><button id='next2' onclick='go2()'>Next</button></div><div id='p3' style='display:none'><h3>Payment</h3><input id='card' placeholder='card'><input id='expiry' placeholder='expiry'><input id='cvv' placeholder='cvv'><button id='order' onclick='go3()'>Place Order</button></div><div id='out'></div><script>function go1(){var u=document.getElementById('username').value;var e=document.getElementById('email').value;var p=document.getElementById('password').value;if(u==='alice'&&e==='alice@example.com'&&p==='pass123'){document.getElementById('p1').style.display='none';document.getElementById('p2').style.display='block';}}function go2(){var n=document.getElementById('fullname').value;var a=document.getElementById('address').value;var c=document.getElementById('city').value;if(n==='Alice Lee'&&a==='1 Main St'&&c==='Boston'){document.getElementById('p2').style.display='none';document.getElementById('p3').style.display='block';}}function go3(){var ca=document.getElementById('card').value;var ex=document.getElementById('expiry').value;var cv=document.getElementById('cvv').value;if(ca==='4111111111111111'&&ex==='12/27'&&cv==='123'){document.getElementById('out').textContent='Order confirmed';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Order confirmed" }
+  }
+}

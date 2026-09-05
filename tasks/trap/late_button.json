@@ -1,0 +1,11 @@
+{
+  "id": "late_button",
+  "difficulty": "hard",
+  "instruction": "Click the 'Confirm' button as soon as you see it, then verify 'Done' appears.",
+  "html": "<div id=\"zone\"></div><div id=\"out\"></div><script>setTimeout(function(){var b=document.createElement('button');b.id='confirm';b.textContent='Confirm';b.onclick=function(){document.getElementById('out').textContent='Done';};document.getElementById('zone').appendChild(b);}, 6000);</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Done" }
+  }
+}

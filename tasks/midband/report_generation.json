@@ -1,0 +1,11 @@
+{
+  "id": "report_generation",
+  "difficulty": "hard",
+  "instruction": "Fill the form: name 'Alice', department 'Engineering', role 'Manager'. Click Submit. Then click the 'Generate Report' button and verify 'Report ready' appears.",
+  "html": "<div id=\"page1\"><input id=\"name\" placeholder=\"name\"><select id=\"dept\"><option>Engineering</option><option>Sales</option></select><select id=\"role\"><option>Manager</option><option>IC</option></select><button onclick=\"s()\">Submit</button></div><div id=\"page2\" style=\"display:none\"><p>Form submitted.</p><button onclick=\"r()\">Generate Report</button></div><div id=\"out\"></div><script>function s(){var n=document.getElementById('name').value;var d=document.getElementById('dept').value;var r=document.getElementById('role').value;if(n==='Alice'&&d==='Engineering'&&r==='Manager'){document.getElementById('page1').style.display='none';document.getElementById('page2').style.display='block';}}function r(){document.getElementById('out').textContent='Report ready';}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Report ready" }
+  }
+}

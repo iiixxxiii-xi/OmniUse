@@ -1,0 +1,16 @@
+{
+  "id": "b25",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the signup page fill email='frank@example.com', password='frank123', then click Sign Up; on the verify page fill verification code='123456', then click Verify; on the welcome page fill nickname='Frank', then click Finish. Then verify 'Order confirmed' appears.",
+  "html": "<div id=\"page_signup\" style=\"display:block\"><input id=\"email\" placeholder=\"email\"><input id=\"password\" placeholder=\"password\"><button id=\"btn_signup\" onclick=\"go_signup()\">Sign Up</button></div><div id=\"page_verify\" style=\"display:none\"><input id=\"code\" placeholder=\"verification code\"><button id=\"btn_verify\" onclick=\"go_verify()\">Verify</button></div><div id=\"page_welcome\" style=\"display:none\"><input id=\"nickname\" placeholder=\"nickname\"><button id=\"btn_welcome\" onclick=\"go_welcome()\">Finish</button></div><div id=\"out\"></div><script>function go_signup(){if(document.getElementById('email').value===\"frank@example.com\" && document.getElementById('password').value===\"frank123\"){document.getElementById('page_signup').style.display='none';document.getElementById('page_verify').style.display='block';}}function go_verify(){if(document.getElementById('code').value===\"123456\"){document.getElementById('page_verify').style.display='none';document.getElementById('page_welcome').style.display='block';}}function go_welcome(){if(document.getElementById('nickname').value===\"Frank\"){document.getElementById('out').textContent='Order confirmed';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Order confirmed"
+    }
+  }
+}

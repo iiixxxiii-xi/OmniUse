@@ -1,0 +1,11 @@
+{
+  "id": "account_finalize",
+  "difficulty": "hard",
+  "instruction": "Create an account: username 'bob', email 'bob@example.com', password 'secret123'. Click 'Create Account'. Then click 'Finalize Setup' and verify 'Setup complete' appears.",
+  "html": "<div id=\"page1\"><input id=\"user\" placeholder=\"username\"><input id=\"email\" placeholder=\"email\"><input id=\"pass\" placeholder=\"password\"><button onclick=\"c()\">Create Account</button></div><div id=\"page2\" style=\"display:none\"><p>Account created.</p><button onclick=\"f()\">Finalize Setup</button></div><div id=\"out\"></div><script>function c(){var u=document.getElementById('user').value;var e=document.getElementById('email').value;var p=document.getElementById('pass').value;if(u==='bob'&&e==='bob@example.com'&&p==='secret123'){document.getElementById('page1').style.display='none';document.getElementById('page2').style.display='block';}}function f(){document.getElementById('out').textContent='Setup complete';}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Setup complete" }
+  }
+}

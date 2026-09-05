@@ -1,0 +1,16 @@
+{
+  "id": "b07",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the reg page fill username='bob', email='bob@example.com', password='secret123', then click Next; on the profile page fill first name='Bob', last name='Smith', phone='555-0100', then click Next; on the prefs page fill theme='dark', language='English', notifications='yes', then click Next; on the confirm page fill type 'AGREE'='AGREE', then click Create Account. Then verify 'Survey submitted' appears.",
+  "html": "<div id=\"page_reg\" style=\"display:block\"><input id=\"username\" placeholder=\"username\"><input id=\"email\" placeholder=\"email\"><input id=\"password\" placeholder=\"password\"><button id=\"btn_reg\" onclick=\"go_reg()\">Next</button></div><div id=\"page_profile\" style=\"display:none\"><input id=\"first\" placeholder=\"first name\"><input id=\"last\" placeholder=\"last name\"><input id=\"phone\" placeholder=\"phone\"><button id=\"btn_profile\" onclick=\"go_profile()\">Next</button></div><div id=\"page_prefs\" style=\"display:none\"><select id=\"theme\"><option>dark</option><option>Other</option></select><select id=\"lang\"><option>English</option><option>Other</option></select><select id=\"notify\"><option>yes</option><option>Other</option></select><button id=\"btn_prefs\" onclick=\"go_prefs()\">Next</button></div><div id=\"page_confirm\" style=\"display:none\"><input id=\"agree\" placeholder=\"type 'AGREE'\"><button id=\"btn_confirm\" onclick=\"go_confirm()\">Create Account</button></div><div id=\"out\"></div><script>function go_reg(){if(document.getElementById('username').value===\"bob\" && document.getElementById('email').value===\"bob@example.com\" && document.getElementById('password').value===\"secret123\"){document.getElementById('page_reg').style.display='none';document.getElementById('page_profile').style.display='block';}}function go_profile(){if(document.getElementById('first').value===\"Bob\" && document.getElementById('last').value===\"Smith\" && document.getElementById('phone').value===\"555-0100\"){document.getElementById('page_profile').style.display='none';document.getElementById('page_prefs').style.display='block';}}function go_prefs(){if(document.getElementById('theme').value===\"dark\" && document.getElementById('lang').value===\"English\" && document.getElementById('notify').value===\"yes\"){document.getElementById('page_prefs').style.display='none';document.getElementById('page_confirm').style.display='block';}}function go_confirm(){if(document.getElementById('agree').value===\"AGREE\"){document.getElementById('out').textContent='Survey submitted';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Survey submitted"
+    }
+  }
+}

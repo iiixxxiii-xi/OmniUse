@@ -47,6 +47,7 @@ class SSHVmEnvironment:
         self._real_screen_size: tuple[int, int] | None = None
         self._connect_timeout = connect_timeout
         self._client = self._connect()
+        self._display = self._detect_display()
 
     def _connect(self):
         import paramiko
@@ -61,6 +62,28 @@ class SSHVmEnvironment:
             timeout=self._connect_timeout,
         )
         return client
+
+    def _detect_display(self) -> str:
+        """Return a reachable X display, probing common candidates.
+
+        The guest's display number shifts across reboots (observed :0 -> :1 after
+        a gdm re-login), so a hardcoded ``DISPLAY`` goes stale and every pyautogui
+        call fails with "Can't connect to display". Probe the caller's hint first,
+        then :0..:4, and fall back to the hint if none respond.
+        """
+        candidates = [self._display] if self._display != "auto" else []
+        candidates += [f":{d}" for d in range(5) if f":{d}" not in candidates]
+        for disp in candidates:
+            _, out, err = self._client.exec_command(
+                f"DISPLAY={disp} python3 -c 'import pyautogui' 2>/dev/null"
+            )
+            out.read()
+            err.read()
+            if out.channel.recv_exit_status() == 0:
+                if disp != self._display:
+                    logger.info("X display %r unreachable; using %r", self._display, disp)
+                return disp
+        return self._display
 
     def _run(self, code: str) -> str:
         """Run ``code`` inside the guest's Python (DISPLAY set); return stdout."""

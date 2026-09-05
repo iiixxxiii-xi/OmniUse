@@ -1,0 +1,11 @@
+{
+  "id": "disabled_submit_gate",
+  "difficulty": "hard",
+  "instruction": "Enter your name as 'Bob' and submit the form. Verify 'Registered' appears.",
+  "html": "<input id=\"name\" placeholder=\"name\"><label><input type=\"checkbox\" id=\"agree\"> I agree to terms</label><button id=\"submit\" disabled onclick=\"s()\">Submit</button><div id=\"out\"></div><script>document.getElementById('agree').addEventListener('change',function(){document.getElementById('submit').disabled=!this.checked;});function s(){document.getElementById('out').textContent='Registered';}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": { "getter": "element_text", "selector": "#out" },
+    "expected": { "expected": "Registered" }
+  }
+}

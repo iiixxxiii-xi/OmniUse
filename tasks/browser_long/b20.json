@@ -1,0 +1,16 @@
+{
+  "id": "b20",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the book page fill date='2026-09-10', guests='2', then click Next; on the details page fill name='Eve', phone='555-2222', then click Next; on the confirm page fill type 'CONFIRM'='CONFIRM', then click Confirm Booking. Then verify 'Order confirmed' appears.",
+  "html": "<div id=\"page_book\" style=\"display:block\"><input id=\"date\" placeholder=\"date\"><select id=\"guests\"><option>2</option><option>Other</option></select><button id=\"btn_book\" onclick=\"go_book()\">Next</button></div><div id=\"page_details\" style=\"display:none\"><input id=\"name\" placeholder=\"name\"><input id=\"phone\" placeholder=\"phone\"><button id=\"btn_details\" onclick=\"go_details()\">Next</button></div><div id=\"page_confirm\" style=\"display:none\"><input id=\"confirm\" placeholder=\"type 'CONFIRM'\"><button id=\"btn_confirm\" onclick=\"go_confirm()\">Confirm Booking</button></div><div id=\"out\"></div><script>function go_book(){if(document.getElementById('date').value===\"2026-09-10\" && document.getElementById('guests').value===\"2\"){document.getElementById('page_book').style.display='none';document.getElementById('page_details').style.display='block';}}function go_details(){if(document.getElementById('name').value===\"Eve\" && document.getElementById('phone').value===\"555-2222\"){document.getElementById('page_details').style.display='none';document.getElementById('page_confirm').style.display='block';}}function go_confirm(){if(document.getElementById('confirm').value===\"CONFIRM\"){document.getElementById('out').textContent='Order confirmed';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Order confirmed"
+    }
+  }
+}

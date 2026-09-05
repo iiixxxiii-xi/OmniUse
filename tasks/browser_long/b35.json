@@ -1,0 +1,16 @@
+{
+  "id": "b35",
+  "difficulty": "hard",
+  "instruction": "Complete the multi-page form: on the profile page fill name='Henry', bio='hi there', then click Next; on the security page fill new password='newpass123', confirm password='newpass123', then click Next; on the prefs page fill theme='light', email alerts='on', then click Save. Then verify 'Order confirmed' appears.",
+  "html": "<div id=\"page_profile\" style=\"display:block\"><input id=\"name\" placeholder=\"name\"><input id=\"bio\" placeholder=\"bio\"><button id=\"btn_profile\" onclick=\"go_profile()\">Next</button></div><div id=\"page_security\" style=\"display:none\"><input id=\"password\" placeholder=\"new password\"><input id=\"confirm\" placeholder=\"confirm password\"><button id=\"btn_security\" onclick=\"go_security()\">Next</button></div><div id=\"page_prefs\" style=\"display:none\"><select id=\"theme\"><option>light</option><option>Other</option></select><select id=\"email\"><option>on</option><option>Other</option></select><button id=\"btn_prefs\" onclick=\"go_prefs()\">Save</button></div><div id=\"out\"></div><script>function go_profile(){if(document.getElementById('name').value===\"Henry\" && document.getElementById('bio').value===\"hi there\"){document.getElementById('page_profile').style.display='none';document.getElementById('page_security').style.display='block';}}function go_security(){if(document.getElementById('password').value===\"newpass123\" && document.getElementById('confirm').value===\"newpass123\"){document.getElementById('page_security').style.display='none';document.getElementById('page_prefs').style.display='block';}}function go_prefs(){if(document.getElementById('theme').value===\"light\" && document.getElementById('email').value===\"on\"){document.getElementById('out').textContent='Order confirmed';}}</script>",
+  "evaluator": {
+    "func": "exact_match",
+    "result": {
+      "getter": "element_text",
+      "selector": "#out"
+    },
+    "expected": {
+      "expected": "Order confirmed"
+    }
+  }
+}
