@@ -84,7 +84,7 @@ def test_screen_size_delegates_to_controller():
 
 
 def test_mouse_actions_delegate_coordinates():
-    ctrl = FakeController()
+    ctrl = FakeController(size=(800, 600))  # small screen → no downscale, coords pass through
     env = DesktopEnvironment(controller=ctrl)
     env.click(10, 20)
     env.move_to(30, 40)
@@ -99,10 +99,18 @@ def test_mouse_actions_delegate_coordinates():
 
 
 def test_drag_moves_then_drags_to():
-    ctrl = FakeController()
+    ctrl = FakeController(size=(800, 600))  # small screen → no downscale
     env = DesktopEnvironment(controller=ctrl)
     env.drag(1, 2, 3, 4)
     assert ctrl.calls == [("moveTo", 1, 2), ("dragTo", 3, 4)]
+
+
+def test_mouse_actions_scale_coordinates_back_to_native():
+    ctrl = FakeController(size=(2560, 1600))
+    env = DesktopEnvironment(controller=ctrl)
+    env.click(640, 400)  # model-space (1280-wide screenshot) → native ×2
+    assert ctrl.calls == [("click", 1280, 800)]
+    assert env.screen_size() == (1280, 800)
 
 
 def test_keyboard_actions_delegate():
