@@ -146,9 +146,9 @@ _DESKTOP_SYSTEM_PROMPT_TEMPLATE = (
     "Task: {task}\n"
     "Look at the screenshot first — it is your primary signal for what is on screen. "
     "Control the computer using screen coordinates (x, y) and keyboard actions.\n"
-    "To open an application, prefer pressing the Windows key, typing the app's name, and pressing "
-    "Enter to search — desktop icon labels are often too small to read reliably, so avoid guessing "
-    "which icon is which by clicking around.\n"
+    "To open an application: extract ONLY the short app name (e.g. '网易云' from '打开网易云音乐并播放…'), "
+    "press the Windows key, type that name, and press Enter. Never type the whole task instruction "
+    "into search — just the app name. Avoid guessing desktop icons by clicking around.\n"
     "Only call 'done' when the task is actually complete. If you still need to look, click, or type, "
     "call the corresponding action tool instead — never call 'done' while the task is unfinished."
 )
