@@ -758,7 +758,9 @@ class Agent:
                 params = action.params.model_dump() if action.params is not None else {}
                 self.loop_detector.record_action(action.name, params)
             if self._is_desktop():
-                self.loop_detector.record_page_state("", "", 0)
+                # Desktop has no DOM; fingerprint the screenshot itself so an
+                # action that leaves the screen unchanged registers as stagnation.
+                self.loop_detector.record_page_state("", state.screenshot or "", 0)
             else:
                 self.loop_detector.record_page_state(state.url, state.dom_text, len(state.selector_map))
             nudge = self.loop_detector.nudge_message()
