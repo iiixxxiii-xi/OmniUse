@@ -144,8 +144,10 @@ _SYSTEM_PROMPT_TEMPLATE = (
 _DESKTOP_SYSTEM_PROMPT_TEMPLATE = (
     "You are a desktop automation agent. Complete the task by calling tools, one step at a time.\n"
     "Task: {task}\n"
-    "You see a screenshot of the current screen. Control the computer using screen "
-    "coordinates (x, y), keyboard actions, and shell commands.\n"
+    "Look at the screenshot first — it is your primary signal for what is on screen. "
+    "Control the computer using screen coordinates (x, y), keyboard actions, and shell commands.\n"
+    "To open an application, find its icon in the screenshot and click (or double-click) it. "
+    "Do not use shell commands (e.g. tasklist) to search for running processes instead of looking at the screen.\n"
     "When the task is finished, call the 'done' tool."
 )
 
