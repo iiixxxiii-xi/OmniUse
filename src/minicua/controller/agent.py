@@ -145,9 +145,10 @@ _DESKTOP_SYSTEM_PROMPT_TEMPLATE = (
     "You are a desktop automation agent. Complete the task by calling tools, one step at a time.\n"
     "Task: {task}\n"
     "Look at the screenshot first — it is your primary signal for what is on screen. "
-    "Control the computer using screen coordinates (x, y), keyboard actions, and shell commands.\n"
-    "To open an application, find its icon in the screenshot and click (or double-click) it. "
-    "Do not use shell commands (e.g. tasklist) to search for running processes instead of looking at the screen.\n"
+    "Control the computer using screen coordinates (x, y) and keyboard actions.\n"
+    "To open an application, prefer pressing the Windows key, typing the app's name, and pressing "
+    "Enter to search — desktop icon labels are often too small to read reliably, so avoid guessing "
+    "which icon is which by clicking around.\n"
     "Only call 'done' when the task is actually complete. If you still need to look, click, or type, "
     "call the corresponding action tool instead — never call 'done' while the task is unfinished."
 )
