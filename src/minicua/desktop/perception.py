@@ -15,6 +15,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from minicua.desktop.a11y import extract_a11y_tree
+
 logger = logging.getLogger("minicua.desktop.perception")
 
 
@@ -24,6 +26,7 @@ class DesktopState(BaseModel):
     screenshot: str | None = None  # base64-encoded PNG, or None when unavailable
     width: int = Field(default=0, ge=0)
     height: int = Field(default=0, ge=0)
+    a11y_tree: str = ""  # linearized accessibility tree (name → position)
 
 
 def extract_desktop_state(env: Any) -> DesktopState:
@@ -45,4 +48,11 @@ def extract_desktop_state(env: Any) -> DesktopState:
     except Exception as exc:  # noqa: BLE001 - degrade rather than crash the loop
         logger.warning("desktop screen size read failed: %s", exc)
 
-    return DesktopState(screenshot=screenshot, width=width, height=height)
+    a11y_tree = ""
+    try:
+        scale = env.scale_factor() if hasattr(env, "scale_factor") else 1.0
+        a11y_tree = extract_a11y_tree(scale=scale)
+    except Exception as exc:  # noqa: BLE001 - degrade rather than crash the loop
+        logger.warning("desktop a11y tree extraction failed: %s", exc)
+
+    return DesktopState(screenshot=screenshot, width=width, height=height, a11y_tree=a11y_tree)

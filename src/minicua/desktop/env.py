@@ -82,6 +82,10 @@ class DesktopEnvironment:
             self._scale = (w / self._SCREENSHOT_MAX_WIDTH) if w > self._SCREENSHOT_MAX_WIDTH else 1.0
         return self._scale
 
+    def scale_factor(self) -> float:
+        """Public accessor for the native→model screenshot downscale factor."""
+        return self._scale_factor()
+
     def _to_native(self, x: int, y: int) -> tuple[int, int]:
         """Scale model-space coordinates back up to native screen pixels."""
         s = self._scale_factor()

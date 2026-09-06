@@ -144,11 +144,11 @@ _SYSTEM_PROMPT_TEMPLATE = (
 _DESKTOP_SYSTEM_PROMPT_TEMPLATE = (
     "You are a desktop automation agent. Complete the task by calling tools, one step at a time.\n"
     "Task: {task}\n"
-    "Look at the screenshot first — it is your primary signal for what is on screen. "
-    "Control the computer using screen coordinates (x, y) and keyboard actions.\n"
-    "To open an application: extract ONLY the short app name (e.g. '网易云' from '打开网易云音乐并播放…'), "
-    "press the Windows key, type that name, and press Enter. Never type the whole task instruction "
-    "into search — just the app name. Avoid guessing desktop icons by clicking around.\n"
+    "Each message includes a screenshot and a 'UI elements' list of named elements with their "
+    "clickable center positions. Target elements from that list by their exact position — do not "
+    "guess by clicking around the screenshot.\n"
+    "To open an application, find its name in the UI elements list (e.g. '[icon] 网易云音乐 @ (x, y)') "
+    "and double-click that position. Control the computer using screen coordinates (x, y) and keyboard actions.\n"
     "Only call 'done' when the task is actually complete. If you still need to look, click, or type, "
     "call the corresponding action tool instead — never call 'done' while the task is unfinished."
 )
@@ -189,12 +189,15 @@ def _build_state_message(state: BrowserState) -> Message:
 
 
 def _build_desktop_state_message(state: DesktopState) -> Message:
-    """Render a desktop perception snapshot into a user message (image + size).
+    """Render a desktop perception snapshot into a user message (image + a11y).
 
-    Desktop has no DOM, so the screenshot is the primary signal; screen size is
-    the only textual context (helps the model sanity-check coordinates).
+    The accessibility tree lists UI elements by name → clickable center, so the
+    model can target them reliably instead of reading tiny labels from the
+    screenshot (which is the secondary, disambiguation signal).
     """
     text = f"Screen: {state.width}x{state.height}"
+    if state.a11y_tree:
+        text += f"\nUI elements (name @ clickable center):\n{state.a11y_tree}"
     if state.screenshot:
         return Message(
             role="user",
