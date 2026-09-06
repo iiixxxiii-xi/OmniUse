@@ -113,6 +113,13 @@ def test_mouse_actions_scale_coordinates_back_to_native():
     assert env.screen_size() == (1280, 800)
 
 
+def test_type_text_non_ascii_uses_clipboard_paste():
+    ctrl = FakeController(size=(800, 600))
+    env = DesktopEnvironment(controller=ctrl)
+    env.type_text("网易云")
+    assert ctrl.calls == [("hotkey", ("ctrl", "v"))]
+
+
 def test_keyboard_actions_delegate():
     ctrl = FakeController()
     env = DesktopEnvironment(controller=ctrl)

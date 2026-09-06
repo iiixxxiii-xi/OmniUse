@@ -172,7 +172,17 @@ class DesktopEnvironment:
     # -- keyboard -----------------------------------------------------------
 
     def type_text(self, text: str) -> None:
-        self._get_controller().typewrite(text)
+        if text.isascii():
+            self._get_controller().typewrite(text)
+            return
+        # pyautogui.typewrite only types ASCII; for unicode (Chinese) copy the
+        # text to the clipboard and paste via Ctrl+V so non-ASCII lands correctly.
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command", "Set-Clipboard -Value $args[0]", text],
+            capture_output=True,
+            timeout=15,
+        )
+        self._get_controller().hotkey("ctrl", "v")
 
     def press(self, key: str) -> None:
         self._get_controller().press(key)
