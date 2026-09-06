@@ -148,7 +148,8 @@ _DESKTOP_SYSTEM_PROMPT_TEMPLATE = (
     "Control the computer using screen coordinates (x, y), keyboard actions, and shell commands.\n"
     "To open an application, find its icon in the screenshot and click (or double-click) it. "
     "Do not use shell commands (e.g. tasklist) to search for running processes instead of looking at the screen.\n"
-    "When the task is finished, call the 'done' tool."
+    "Only call 'done' when the task is actually complete. If you still need to look, click, or type, "
+    "call the corresponding action tool instead — never call 'done' while the task is unfinished."
 )
 
 
