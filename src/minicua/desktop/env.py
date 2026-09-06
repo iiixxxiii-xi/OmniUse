@@ -56,6 +56,11 @@ class DesktopEnvironment:
         Default per-command timeout (seconds) for ``run_shell``.
     """
 
+    #: Native screenshots wider than this are downscaled before reaching the
+    #: vision model (desktop icons are tiny at e.g. 2560x1600); mouse coordinates
+    #: are scaled back up before execution so clicks land on the right pixel.
+    _SCREENSHOT_MAX_WIDTH = 1280
+
     def __init__(
         self,
         *,
@@ -68,6 +73,19 @@ class DesktopEnvironment:
         self._screenshot_fn = screenshot_fn
         self._runner = runner
         self.shell_timeout = shell_timeout
+        self._scale: float | None = None
+
+    def _scale_factor(self) -> float:
+        """Downscale factor between native pixels and the model-facing screenshot."""
+        if self._scale is None:
+            w, _ = self._get_controller().size()
+            self._scale = (w / self._SCREENSHOT_MAX_WIDTH) if w > self._SCREENSHOT_MAX_WIDTH else 1.0
+        return self._scale
+
+    def _to_native(self, x: int, y: int) -> tuple[int, int]:
+        """Scale model-space coordinates back up to native screen pixels."""
+        s = self._scale_factor()
+        return int(x * s), int(y * s)
 
     # -- backend accessors --------------------------------------------------
 
@@ -94,6 +112,12 @@ class DesktopEnvironment:
         if img is None:
             return None
         try:
+            s = self._scale_factor()
+            if s > 1.0:
+                from PIL import Image
+
+                w, h = img.size
+                img = img.resize((int(w / s), int(h / s)), Image.LANCZOS)
             buf = io.BytesIO()
             img.save(buf, format="PNG")
             return base64.b64encode(buf.getvalue()).decode("ascii")
@@ -115,28 +139,35 @@ class DesktopEnvironment:
             return self._get_controller().screenshot()
 
     def screen_size(self) -> tuple[int, int]:
-        """Return the primary screen size as ``(width, height)``."""
+        """Return the model-facing screen size as ``(width, height)`` (downscaled)."""
         w, h = self._get_controller().size()
-        return int(w), int(h)
+        s = self._scale_factor()
+        return int(w / s), int(h / s)
 
     # -- mouse --------------------------------------------------------------
 
     def click(self, x: int, y: int) -> None:
-        self._get_controller().click(x, y)
+        nx, ny = self._to_native(x, y)
+        self._get_controller().click(nx, ny)
 
     def move_to(self, x: int, y: int) -> None:
-        self._get_controller().moveTo(x, y)
+        nx, ny = self._to_native(x, y)
+        self._get_controller().moveTo(nx, ny)
 
     def double_click(self, x: int, y: int) -> None:
-        self._get_controller().doubleClick(x, y)
+        nx, ny = self._to_native(x, y)
+        self._get_controller().doubleClick(nx, ny)
 
     def right_click(self, x: int, y: int) -> None:
-        self._get_controller().rightClick(x, y)
+        nx, ny = self._to_native(x, y)
+        self._get_controller().rightClick(nx, ny)
 
     def drag(self, x1: int, y1: int, x2: int, y2: int) -> None:
+        nx1, ny1 = self._to_native(x1, y1)
+        nx2, ny2 = self._to_native(x2, y2)
         ctrl = self._get_controller()
-        ctrl.moveTo(x1, y1)
-        ctrl.dragTo(x2, y2, button="left")
+        ctrl.moveTo(nx1, ny1)
+        ctrl.dragTo(nx2, ny2, button="left")
 
     # -- keyboard -----------------------------------------------------------
 
