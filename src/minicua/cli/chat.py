@@ -83,7 +83,7 @@ def chat_command(
         "--use-vision",
         help="Vision mode: dom_only, vision, or auto (capture iff the model supports it).",
     ),
-    max_steps: int = typer.Option(20, "--max-steps", help="Maximum agent steps per instruction."),
+    max_steps: int = typer.Option(50, "--max-steps", help="Maximum agent steps per instruction."),
     headless: bool = typer.Option(
         False,
         "--headless",

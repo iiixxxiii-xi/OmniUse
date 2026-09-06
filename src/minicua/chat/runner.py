@@ -151,7 +151,7 @@ class ChatRunner:
         self,
         model: ChatModel,
         *,
-        max_steps: int = 20,
+        max_steps: int = 50,
         use_vision: str = "dom_only",
         headless: bool = True,
         mode: str = "browser",
