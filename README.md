@@ -20,12 +20,12 @@ OmniUse 让 AI agent 像人一样操作电脑——打开网页、点击、输�
 ## 核心能力
 
 - **browser persistent session** — Playwright 持久会话 + 崩溃看门狗
-- **hybrid perception** — DOM 线性化 + screenshot 双通道
+- **hybrid perception** — browser 用 DOM + screenshot，desktop 用 accessibility tree（UIA）+ screenshot
 - **action grounding** — 模型输出 index → 真实 locator
-- **recovery** — stale element 重定位 / page-change 检测 / loop 检测 / crash 重建
+- **recovery** — stale element 重定位 / page-change 检测 / loop 检测 / 截图停滞检测 / crash 重建
 - **long-horizon state** — 任务状态、checkpoint、append-only event log（JSONL 轨迹）
 - **verification** — 声明式 evaluator（getter → metric → conj）
-- **两个动作空间** — `browser/`（Playwright 驱动 Chromium）+ `desktop/`（本地桌面 / SSH VM，OSWorld 风格）
+- **两个动作空间** — `browser/`（Playwright 驱动 Chromium）+ `desktop/`（本地桌面 / SSH VM，UIA 无障碍树定位，OSWorld 风格）
 
 ## 架构
 
@@ -100,7 +100,7 @@ src/minicua/
   perception/  DOM 线性化、selector 映射、截图
   action/      动作模型、落点（index → locator）、执行器
   controller/  agent 循环、预算、重试、ChatModel + FakeModel
-  desktop/     desktop 动作空间（本地 / SSH VM，OSWorld 风格）
+  desktop/     desktop 动作空间：UIA 无障碍树、截图指纹、坐标执行（本地 / SSH VM）
   recovery/    stale 重定位、页面变化、死循环、崩溃重建
   state/       append-only event log、checkpoint、轨迹
   eval/        getter、metric、evaluator、runner、report
