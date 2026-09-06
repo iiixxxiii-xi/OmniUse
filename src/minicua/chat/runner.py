@@ -21,6 +21,7 @@ from minicua.action.models import Action, ActionResult
 from minicua.browser.session import BrowserSession
 from minicua.controller.agent import Agent, AgentResult
 from minicua.controller.llm import ChatModel
+from minicua.desktop.actions import get_desktop_registry
 from minicua.desktop.env import DesktopEnvironment
 from minicua.eval.runner import _serve_fixture
 
@@ -233,6 +234,7 @@ class ChatRunner:
             task=instruction,
             max_steps=self.max_steps,
             use_vision="vision",
+            registry=get_desktop_registry(include_shell=False),
         )
         agent_result = await agent.run(instruction)
         actions, summary = build_summary(agent_result)

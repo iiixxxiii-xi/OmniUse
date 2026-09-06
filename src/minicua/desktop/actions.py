@@ -357,18 +357,34 @@ async def _done(params: DoneParams, env: Any, state: Any = None) -> ActionResult
 # --------------------------------------------------------------------------- #
 
 _desktop_registry: ActionRegistry | None = None
+_desktop_registry_no_shell: ActionRegistry | None = None
 
 
-def get_desktop_registry() -> ActionRegistry:
-    """Return the process-wide desktop :class:`ActionRegistry` (lazy singleton)."""
-    global _desktop_registry
-    if _desktop_registry is None:
-        reg = ActionRegistry(default=False)
-        for name, model in DESKTOP_PARAM_MODELS.items():
-            func = _HANDLERS[name]
-            reg.register(name, model, DESKTOP_ACTION_DESCRIPTIONS.get(name, ""), func)
-        _desktop_registry = reg
-    return _desktop_registry
+def get_desktop_registry(include_shell: bool = True) -> ActionRegistry:
+    """Return a process-wide desktop :class:`ActionRegistry` (lazy singleton).
+
+    ``include_shell=False`` drops the ``shell`` action — used by the interactive
+    chat mode so the model is forced to drive the GUI via screenshot + mouse
+    instead of probing/launching processes from a shell.
+    """
+    global _desktop_registry, _desktop_registry_no_shell
+    if include_shell:
+        if _desktop_registry is None:
+            _desktop_registry = _build_desktop_registry(include_shell=True)
+        return _desktop_registry
+    if _desktop_registry_no_shell is None:
+        _desktop_registry_no_shell = _build_desktop_registry(include_shell=False)
+    return _desktop_registry_no_shell
+
+
+def _build_desktop_registry(include_shell: bool) -> ActionRegistry:
+    reg = ActionRegistry(default=False)
+    for name, model in DESKTOP_PARAM_MODELS.items():
+        if not include_shell and name == "shell":
+            continue
+        func = _HANDLERS[name]
+        reg.register(name, model, DESKTOP_ACTION_DESCRIPTIONS.get(name, ""), func)
+    return reg
 
 
 _HANDLERS: dict[str, Any] = {
