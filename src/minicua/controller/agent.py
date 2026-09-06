@@ -234,7 +234,7 @@ class Agent:
         checkpoint_dir: str | Path | None = None,
         loop_detection: bool = True,
         loop_window: int = 10,
-        loop_threshold: int = 5,
+        loop_threshold: int = 3,
         crash_watchdog: CrashWatchdog | None = None,
         memory: TaskMemory | None = None,
         verifier: Callable[[], Any] | None = None,
