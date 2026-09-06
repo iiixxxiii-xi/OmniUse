@@ -149,6 +149,8 @@ _DESKTOP_SYSTEM_PROMPT_TEMPLATE = (
     "guess by clicking around the screenshot.\n"
     "To open an application, find its name in the UI elements list (e.g. '[icon] 网易云音乐 @ (x, y)') "
     "and double-click that position. Control the computer using screen coordinates (x, y) and keyboard actions.\n"
+    "Do not repeat or echo the 'UI elements' list in your output — just act on it. Keep your "
+    "'done' submission to a one-line summary.\n"
     "Only call 'done' when the task is actually complete. If you still need to look, click, or type, "
     "call the corresponding action tool instead — never call 'done' while the task is unfinished."
 )
